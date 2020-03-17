@@ -5,7 +5,8 @@
 .Saved/
 .Intermediate/
 .UE4VS/
-
+UE4VS
+UE4VS/*
 # Compiled Object files
 *.slo
 *.lo
