@@ -2,6 +2,9 @@
 .vs/
 .Debug/
 .Release/
+.Saved/
+.Intermediate/
+.UE4VS/
 
 # Compiled Object files
 *.slo
