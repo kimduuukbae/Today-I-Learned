@@ -1,6 +1,11 @@
 #include "stdafx.h"
 #include "Camera.h"
 
+CCamera::~CCamera(){
+	if (m_pViewport)
+		delete m_pViewport;
+}
+
 CPoint3D CCamera::CameraTransform(CPoint3D& f3World) {
 	CPoint3D f3Camera = { f3World };
 

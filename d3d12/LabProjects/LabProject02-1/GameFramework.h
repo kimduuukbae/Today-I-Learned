@@ -10,7 +10,7 @@ public:
 private:
 	HINSTANCE m_hInstance = { nullptr };
 	HWND m_hWnd = { nullptr };
-	RECT m_rcClient;
+	RECT m_rcClient{};
 	
 	HDC m_hDCFrameBuffer = { nullptr };
 	HBITMAP m_hBitmapFrameBuffer = { nullptr };

@@ -57,6 +57,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         
     }
     gGameFramework.OnDestroy();
+    _CrtDumpMemoryLeaks();
     return (int) msg.wParam;
 }
 

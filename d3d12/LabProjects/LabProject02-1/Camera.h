@@ -19,7 +19,7 @@ public:
 class CCamera{
 public:
 	CCamera() {}
-	virtual ~CCamera() {}
+	virtual ~CCamera();
 
 private:
 	float m_fxPosition = { 0.0f };
