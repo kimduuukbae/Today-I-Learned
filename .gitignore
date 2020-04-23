@@ -4,6 +4,9 @@
 .Release/
 .Saved/
 .Intermediate/
+./packages/
+packages/*
+packages
 .UE4VS/
 UE4VS
 UE4VS/*
@@ -119,4 +122,7 @@ DerivedDataCache/*
 *.swp
 *.swo
 .ctrlp_cache/
+
+*.vcxproj.FileListAbsolute.txt
 >>>>>>> 82ec15a5dee603b9748f92d31f779c5ae1888304
+
