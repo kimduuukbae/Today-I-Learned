@@ -1,22 +1,12 @@
 #pragma once
 
-class CPoint3D {
-public:
-	CPoint3D() {}
-	CPoint3D(float x, float y, float z) : x{ x }, y{ y }, z{ z } {}
-	virtual ~CPoint3D() {}
-
-	float x = { 0.0f };
-	float y = { 0.0f };
-	float z = { 0.0f };
-};
-
 class CVertex {
 public:
 	CVertex() {}
-	CVertex(float x, float y, float z) : m_f3Position{ CPoint3D{x, y, z} } {}
+	CVertex(float x, float y, float z) : position{ x,y,z } {}
 	virtual ~CVertex() { }
-	CPoint3D m_f3Position;
+
+	DirectX::XMFLOAT3 position{};
 };
 
 class CPolygon {

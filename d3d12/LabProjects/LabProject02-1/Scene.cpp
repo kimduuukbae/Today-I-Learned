@@ -4,7 +4,7 @@
 
 void CScene::BuildObjects(){
 	CCubeMesh* pCubeMesh = new CCubeMesh(8.0f, 8.0f, 8.0f);
-
+	
 	m_nObjects = 2;
 	m_ppObjects = new CGameObject*[m_nObjects];
 

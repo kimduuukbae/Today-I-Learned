@@ -15,7 +15,7 @@ public:
 		m_pCamera = pCamera;
 	}
 
-	static CPoint3D ScreenTransform(CPoint3D& f3Projection);
-	static CPoint3D Project(CPoint3D& f3Model);
+	static DirectX::XMVECTOR ScreenTransform(const DirectX::XMFLOAT3& f3Projection);
+	static DirectX::XMVECTOR Project(DirectX::XMFLOAT3& f3Model);
 };
 

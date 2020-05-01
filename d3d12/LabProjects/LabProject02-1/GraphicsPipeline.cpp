@@ -3,17 +3,18 @@
 #include "Camera.h"
 #include "GameObject.h"
 
+using namespace DirectX;
+
 CGameObject* CGraphicsPipeline::m_pGameObject = nullptr;
 CCamera* CGraphicsPipeline::m_pCamera = nullptr;
 
-CPoint3D CGraphicsPipeline::ScreenTransform(CPoint3D& f3Projection){
-	CPoint3D f3Screen = m_pCamera->ScreenTransform(f3Projection);
-	return f3Screen;
+XMVECTOR CGraphicsPipeline::ScreenTransform(const XMFLOAT3& f3Projection){
+	return m_pCamera->ScreenTransform(XMLoadFloat3(&f3Projection));
 }
 
-CPoint3D CGraphicsPipeline::Project(CPoint3D& f3Model){
-	CPoint3D f3World = m_pGameObject->WorldTransfrom(f3Model);
-	CPoint3D f3Camera = m_pCamera->CameraTransform(f3World);
-	CPoint3D f3Projection = m_pCamera->ProjectionTransform(f3Camera);
+XMVECTOR CGraphicsPipeline::Project(XMFLOAT3& f3Model) {
+	XMVECTOR f3World{ m_pGameObject->WorldTransfrom(XMLoadFloat3(&f3Model)) };
+	XMVECTOR f3Camera{ m_pCamera->CameraTransform(f3World) };
+	XMVECTOR f3Projection{ m_pCamera->ProjectionTransform(f3Camera) };
 	return f3Projection;
 }
