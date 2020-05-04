@@ -14,43 +14,13 @@ void CGameObject::SetMesh(CMesh* pMesh) {
 		pMesh->AddRef();
 }
 
-XMVECTOR CGameObject::WorldTransfrom(FXMVECTOR& f3Model){
-
-	float fPitch{ degreeToRadian(rotation.x) };
-	float fYaw {degreeToRadian(rotation.y)};
-	float fRoll{ degreeToRadian(rotation.z) };
-
-	XMFLOAT3 f3World{}, f3Rotated{};
-	XMStoreFloat3(&f3World, f3Model);
-	XMStoreFloat3(&f3Rotated, f3Model);
-
-	if (fPitch != 0.0f) {
-		f3Rotated.y = f3World.y * std::cosf(fPitch) - f3World.z * std::sinf(fPitch);
-		f3Rotated.z = f3World.y * std::sinf(fPitch) + f3World.z * std::cosf(fPitch);
-		f3World.y = f3Rotated.y;
-		f3World.z = f3Rotated.z;
-	}
-	if (fYaw != 0.0f) {
-		f3Rotated.x = f3World.x * std::cosf(fYaw) + f3World.z * std::sinf(fYaw);
-		f3Rotated.z = -f3World.x * std::sinf(fYaw) + f3World.z * std::cosf(fYaw);
-		f3World.x = f3Rotated.x;
-		f3World.z = f3Rotated.z;
-	}
-	if (fRoll != 0.0f) {
-		f3Rotated.x = f3World.x * std::cosf(fRoll) - f3World.y * std::sinf(fRoll);
-		f3Rotated.y = f3World.x * std::sinf(fRoll) + f3World.y * std::cosf(fRoll);
-		f3World.x = f3Rotated.x;
-		f3World.y = f3Rotated.y;
-	}
-
-	f3World.x += position.x;
-	f3World.y += position.y;
-	f3World.z += position.z;
-	return XMLoadFloat3(&f3World);
+XMVECTOR CGameObject::WorldTransform(FXMVECTOR& f3Model){
+	
+	return XMVector3TransformCoord(f3Model, XMLoadFloat4x4(&worldMatrix));
 }
 
 void CGameObject::Animate(float fElapsedTime){
-	Rotate(speed.x * fElapsedTime, speed.y * fElapsedTime, speed.z * fElapsedTime);
+	Rotate(rotationSpeed.x * fElapsedTime, rotationSpeed.y * fElapsedTime, rotationSpeed.z * fElapsedTime);
 }
 
 void CGameObject::Render(HDC hDCFrameBuffer){
@@ -64,22 +34,30 @@ void CGameObject::Render(HDC hDCFrameBuffer){
 }
 
 void CGameObject::SetPosition(float x, float y, float z) {
-	XMStoreFloat3(&position, XMVECTOR{x,y,z});
+	worldMatrix._41 = x;
+	worldMatrix._42 = y;
+	worldMatrix._43 = z;
 }
 void CGameObject::SetRotation(float x, float y, float z) {
-	XMStoreFloat3(&rotation, XMVECTOR{ x,y,z });
+	XMMATRIX mat{ XMMatrixRotationRollPitchYaw(z, x, y) };
+	::memcpy(&worldMatrix, &mat, sizeof(float) * 12);
 }
 void CGameObject::SetRotationSpeed(float x, float y, float z) {
-	XMStoreFloat3(&speed, XMVECTOR{ x,y,z });
+	XMStoreFloat3(&rotationSpeed, XMVECTOR{ x,y,z });
 }
 // 객체를 x, y, z 축으로 이동
 void CGameObject::Move(float x, float y, float z) {
-	XMVECTOR v{ XMLoadFloat3(&position) };
-	XMStoreFloat3(&position, XMVectorAdd(v, XMVECTOR{ x,y,z }));
+	worldMatrix._41 += x;
+	worldMatrix._42 += y;
+	worldMatrix._43 += z;
 }
 void CGameObject::Rotate(float x, float y, float z) {
-	XMVECTOR v{ XMLoadFloat3(&rotation) };
-	XMStoreFloat3(&rotation, XMVectorAdd(v, XMVECTOR{ x,y,z }));
+	XMFLOAT4X4& t{ worldMatrix };
+	XMFLOAT3X3 f{ t._11, t._12, t._13,
+				 t._21, t._22, t._23,
+				 t._31, t._32, t._33 };
+	XMMATRIX mat{ XMMatrixMultiply(XMLoadFloat3x3(&f), XMMatrixRotationRollPitchYaw(z, x, y)) };
+	::memcpy(&worldMatrix, &mat, sizeof(float) * 12);
 }
 
 void CGameObject::SetColor(DWORD dwColor) {

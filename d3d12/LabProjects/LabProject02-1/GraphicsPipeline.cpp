@@ -13,7 +13,7 @@ XMVECTOR CGraphicsPipeline::ScreenTransform(const XMFLOAT3& f3Projection){
 }
 
 XMVECTOR CGraphicsPipeline::Project(XMFLOAT3& f3Model) {
-	XMVECTOR f3World{ m_pGameObject->WorldTransfrom(XMLoadFloat3(&f3Model)) };
+	XMVECTOR f3World{ m_pGameObject->WorldTransform(XMLoadFloat3(&f3Model)) };
 	XMVECTOR f3Camera{ m_pCamera->CameraTransform(f3World) };
 	XMVECTOR f3Projection{ m_pCamera->ProjectionTransform(f3Camera) };
 	return f3Projection;

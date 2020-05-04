@@ -9,49 +9,21 @@ CCamera::~CCamera(){
 }
 
 XMVECTOR CCamera::CameraTransform(FXMVECTOR& f3World) {
-	XMFLOAT3 curCameraPosition{};
-	XMStoreFloat3(&curCameraPosition, f3World);
+	XMFLOAT4 eye{ viewMatrix.m[3] };
+	XMFLOAT4 at{ eye.x, eye.y, eye.z + 1.0f, 0.0f };
+	XMFLOAT4 up{ 0.0f, 1.0f, 0.0f, 0.0f };
 
-	curCameraPosition.x -= position.x;
-	curCameraPosition.y -= position.y;
-	curCameraPosition.z -= position.z;
+	XMVECTOR eyeVector{ XMLoadFloat4(&eye) };
+	XMVECTOR atVector{ XMLoadFloat4(&at) };
+	XMVECTOR upVector{ XMLoadFloat4(&up) };
 
-	// world 좌표로 카메라 이동
-	float fPitch{ degreeToRadian(-rotation.x) };
-	float fYaw{ degreeToRadian(-rotation.y) };
-	float fRoll { degreeToRadian(-rotation.z) };
-
-	XMFLOAT3 f3Rotated{ curCameraPosition };
-
-	if (fPitch != 0.0f) {
-		f3Rotated.y = curCameraPosition.y * std::cosf(fPitch) - curCameraPosition.z * std::sinf(fPitch);
-		f3Rotated.z = curCameraPosition.y * std::sinf(fPitch) + curCameraPosition.z * std::cosf(fPitch);
-		curCameraPosition.y = f3Rotated.y;
-		curCameraPosition.z = f3Rotated.z;
-	}
-	if (fYaw != 0.0f) {
-		f3Rotated.x = curCameraPosition.x * std::cosf(fYaw) + curCameraPosition.z * std::sinf(fYaw);
-		f3Rotated.z = -curCameraPosition.x * std::sinf(fYaw) + curCameraPosition.z * std::cosf(fYaw);
-		curCameraPosition.x = f3Rotated.x;
-		curCameraPosition.z = f3Rotated.z;
-	}
-	if (fRoll != 0.0f) {
-		f3Rotated.x = curCameraPosition.x * std::cosf(fRoll) - curCameraPosition.y * std::sinf(fRoll);
-		f3Rotated.y = curCameraPosition.x * std::sinf(fRoll) + curCameraPosition.y * std::cosf(fRoll);
-		curCameraPosition.x = f3Rotated.x;
-		curCameraPosition.y = f3Rotated.y;
-	}
-
-	//XMMATRIX tRotation{ XMMatrixRotationRollPitchYaw(fPitch, fYaw, fRoll) };
-	// 카메라를 축에 맞춰 회전 행렬 반환
-	// 위치와 회전 행렬 곱
-	return XMLoadFloat3(&curCameraPosition);
+	return XMVector3TransformCoord(f3World, XMMatrixLookAtLH(eyeVector, atVector, upVector));
 }
 
 XMVECTOR CCamera::ProjectionTransform(FXMVECTOR& f3Camera){
 	XMFLOAT3 project{ VectorToF3(f3Camera) };
 	XMFLOAT3 camera{ VectorToF3(f3Camera) };
-	
+	//XMMatrixPerspectiveFovLH(m_fFOVAngle, m_fAspectRatio, m_fProjectRectDistance);
 	if (camera.z != 0.0f) {
 		// 카메라의 시야각이 90도가 아닌 경우 투영 사각형까지의 거리를 곱한다.
 		project.x = float((camera.x * m_fProjectRectDistance) /
@@ -61,7 +33,10 @@ XMVECTOR CCamera::ProjectionTransform(FXMVECTOR& f3Camera){
 		// 투영 좌표계는 2차원이므로 z 좌표에 카메라 좌표 z좌표를 저장
 		project.z = camera.z;
 	}
-	return XMLoadFloat3(&project);
+	//return XMLoadFloat3(&project);
+
+	return XMVector3TransformCoord(f3Camera, XMMatrixPerspectiveFovLH(m_fFOVAngle
+		, m_fAspectRatio, 0.1f, 1000.0f));
 }
 
 XMVECTOR CCamera::ScreenTransform(FXMVECTOR& f3Projection){
@@ -86,14 +61,27 @@ void CCamera::SetFOVAngle(float fFOVAngle){
 }
 
 void CCamera::Move(float x, float y, float z){
-	XMFLOAT3 move{ x,y,z };
-	XMVECTOR v{ XMLoadFloat3(&move) };
-	
-	DirectX::XMStoreFloat3(&position, XMVectorAdd(XMLoadFloat3(&position), v));
+	viewMatrix._41 += x;
+	viewMatrix._42 += y;
+	viewMatrix._43 += z;
 }
 
 void CCamera::Rotate(float fPitch, float fYaw, float fRoll){
-	XMFLOAT3 rotation{ fPitch, fYaw, fRoll };
-	XMVECTOR v{ XMLoadFloat3(&rotation) };
-	DirectX::XMStoreFloat3(&rotation, XMVectorAdd(XMLoadFloat3(&rotation), v));
+	XMFLOAT4X4& t{ viewMatrix };
+	XMFLOAT3X3 f{ t._11, t._12, t._13,
+				 t._21, t._22, t._23,
+				 t._31, t._32, t._33 };
+	XMMATRIX mat{ XMMatrixMultiply(XMLoadFloat3x3(&f), XMMatrixRotationRollPitchYaw(fRoll, fPitch, fYaw)) };
+	::memcpy(&viewMatrix, &mat, sizeof(float) * 12);
+}
+
+void CCamera::SetPosition(float x, float y, float z) {
+	viewMatrix._41 = x;
+	viewMatrix._42 = y;
+	viewMatrix._43 = z;
+}
+
+void CCamera::SetRotation(float fPitch, float fYaw, float fRoll) {
+	XMMATRIX mat{ XMMatrixRotationRollPitchYaw(fRoll, fPitch, fYaw) };
+	::memcpy(&viewMatrix, &mat, sizeof(float) * 12);
 }
