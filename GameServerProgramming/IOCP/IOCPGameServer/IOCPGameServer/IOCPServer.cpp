@@ -1,6 +1,9 @@
 #include <iostream>
 #include <WS2tcpip.h>
 #include <MSWSock.h>
+#include <vector>
+#include <thread>
+#include <mutex>
 #include "protocol.h"
 
 #pragma comment(lib, "ws2_32.lib")
@@ -15,28 +18,39 @@ enum class EOperation : int {
 	E_ACCEPT
 };
 
+enum class EStatus : int {
+	E_FREE,
+	E_ALLOC,
+	E_ACTIVE
+};
+
 struct ExOverlapped {
 	WSAOVERLAPPED overlapped;
 	EOperation operation;
 	char ioBuffer[MAX_BUFFER_SIZE];
-	WSABUF wsabuf;
+	union {
+		WSABUF wsabuf;
+		SOCKET clientSock;
+	};
+	
 };
 
 struct Client {
+	std::mutex mtx;
 	SOCKET socket;
 	int id;
 	ExOverlapped recvOverlapped;
 	int prevSize;
 	char packetBuffer[MAX_PACKET_SIZE];
-	bool isConnected;
+	EStatus status;
 
 	short x, y;
 	char name[MAX_ID_LEN + 1];
 };
 
 Client clients[MAX_USER_SIZE]{};
-int currentUserId{ 0 };
 HANDLE iocpHandle;
+SOCKET listenSock;
 
 void sendPacket(int userId, void* packet) {
 	char* buf{ reinterpret_cast<char*>(packet) };
@@ -124,43 +138,65 @@ void clientMove(int userId, int direction) {
 	user.x = x;
 	user.y = y;
 	for (auto& client : clients) {
-		if (client.isConnected)
+		client.mtx.lock();
+		if (client.status == EStatus::E_ACTIVE)
 			sendMovePacket(client.id, userId);
+		client.mtx.unlock();
 	}
 }
 
-void enterGame(int userId) {
-	clients[userId].isConnected = true;
+void enterGame(int userId, char name[]) {
+
+	clients[userId].mtx.lock();
+	strcpy_s(clients[userId].name, name);
+	clients[userId].name[MAX_ID_LEN] = '\0';
+	sendLoginPacket(userId);
+	
 	for (int i = 0; i < MAX_USER_SIZE; ++i) {
-		if (clients[i].isConnected && !(userId & i)) {
+		if (userId == i)
+			continue;
+
+		clients[i].mtx.lock();
+		if (clients[i].status == EStatus::E_ACTIVE) {
 			sendEnterPacket(userId, i);
 			sendEnterPacket(i, userId);
 		}
+		clients[i].mtx.unlock();
 	}
-
+	clients[userId].status = EStatus::E_ACTIVE;
+	clients[userId].mtx.unlock();
 }
 
 void clientInit() {
-	for (int i = 0; i < MAX_USER_SIZE; ++i)
-		clients[i].isConnected = false;
+	for (int i = 0; i < MAX_USER_SIZE; ++i) {
+		clients[i].id = i;
+		clients[i].status = EStatus::E_FREE;
+	}
 }
 
 void disconnect(int userId) {
-	clients[userId].isConnected = false;
+	clients[userId].mtx.lock();
+	clients[userId].status = EStatus::E_ALLOC;
+	sendLeavePacket(userId, userId);
+	closesocket(clients[userId].socket);
 	for (auto& client : clients) {
-		if (client.isConnected)
+		if (userId == client.id)
+			continue;
+
+		client.mtx.lock();
+		if (client.status == EStatus::E_ACTIVE)
 			sendLeavePacket(client.id, userId);
+		client.mtx.unlock();
 	}
+	clients[userId].status = EStatus::E_FREE;
+	clients[userId].mtx.unlock();
 }
 
 void processPacket(int userId, char* buf) {
 	switch (buf[1]) {
 	case C2S_LOGIN: {
 		cs_packet_login* packet{ reinterpret_cast<cs_packet_login*>(buf) };
-		strcpy_s(clients[userId].name, packet->name);
-		clients[userId].name[MAX_ID_LEN] = '\0';
-		sendLoginPacket(userId);
-		enterGame(userId);
+		enterGame(userId, packet->name);
 		break;
 	}
 	case C2S_MOVE: {
@@ -205,11 +241,83 @@ void recvPacketConstruct(int userId, int ioByte) {
 	}
 }
 
+void workerThread() {
+	while (true) {
+		DWORD ioByte{};
+		ULONG_PTR key{};
+		WSAOVERLAPPED* over;
+		GetQueuedCompletionStatus(iocpHandle, &ioByte, &key, &over, INFINITE);
+
+		ExOverlapped* exOver{ reinterpret_cast<ExOverlapped*>(over) };
+		int userId{ static_cast<int>(key) };
+		Client& curClient{ clients[userId] };
+
+		switch (exOver->operation) {
+		case EOperation::E_RECV: {
+			if (ioByte == 0)
+				disconnect(userId);
+			else {
+				recvPacketConstruct(userId, ioByte);
+				DWORD flags{ 0 };
+				ZeroMemory(&curClient.recvOverlapped.overlapped,
+					sizeof(curClient.recvOverlapped.overlapped));
+
+				WSARecv(curClient.socket, &curClient.recvOverlapped.wsabuf, 1, NULL,
+					&flags, &curClient.recvOverlapped.overlapped, NULL);
+			}
+			break;
+		}
+		case EOperation::E_SEND:
+			if (ioByte == 0)
+				disconnect(userId);
+			delete exOver;
+			break;
+		case EOperation::E_ACCEPT: {
+			int userId{ -1 };
+			for (int i = 0; i < MAX_USER_SIZE; ++i) {
+				std::lock_guard<std::mutex> lock{ clients[i].mtx };
+				if (clients[i].status == EStatus::E_FREE) {
+					userId = i;
+					clients[i].status = EStatus::E_ALLOC;
+					break;
+				}
+			}
+			SOCKET clientSock = exOver->clientSock;
+			if (userId == -1)
+				closesocket(exOver->clientSock);
+			else {
+				Client& targetClient{ clients[userId] };
+				CreateIoCompletionPort(reinterpret_cast<HANDLE>(clientSock), iocpHandle, userId, 0);
+
+				targetClient.prevSize = 0;
+				targetClient.recvOverlapped.operation = EOperation::E_RECV;
+				targetClient.recvOverlapped.wsabuf.buf = targetClient.recvOverlapped.ioBuffer;
+				targetClient.recvOverlapped.wsabuf.len = MAX_BUFFER_SIZE;
+				targetClient.socket = clientSock;
+				targetClient.x = rand() % WORLD_WIDTH;
+				targetClient.y = rand() % WORLD_HEIGHT;
+
+				DWORD flags{ 0 };
+
+				WSARecv(clientSock, &targetClient.recvOverlapped.wsabuf, 1, NULL,
+					&flags, &targetClient.recvOverlapped.overlapped, NULL);
+			}
+			clientSock = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
+			exOver->clientSock = clientSock;
+			ZeroMemory(&exOver->overlapped, sizeof(exOver->overlapped));
+			AcceptEx(listenSock, clientSock, exOver->ioBuffer, NULL, sizeof(sockaddr_in) + 16, sizeof(sockaddr_in) + 16,
+				NULL, &exOver->overlapped);
+			}
+		break;
+		}
+	}
+}
+
 int main() {
 	WSADATA wsa;
 	WSAStartup(MAKEWORD(2, 2), &wsa);
 
-	SOCKET listenSock = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP,
+	listenSock = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP,
 		NULL, 0, WSA_FLAG_OVERLAPPED);
 
 	sockaddr_in serverAddr{};
@@ -229,65 +337,13 @@ int main() {
 	SOCKET clientSock{ WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED) };
 	ExOverlapped acceptOver{};
 	acceptOver.operation = EOperation::E_ACCEPT;
+	acceptOver.clientSock = clientSock;
 	AcceptEx(listenSock, clientSock, acceptOver.ioBuffer, NULL, sizeof(sockaddr_in) + 16, sizeof(sockaddr_in) + 16,
 		NULL, &acceptOver.overlapped);
 
-	while (true) {
-		DWORD ioByte{};
-		ULONG_PTR key{};
-		WSAOVERLAPPED* over;
-		GetQueuedCompletionStatus(iocpHandle, &ioByte, &key, &over, INFINITE);
-
-		ExOverlapped* exOver{ reinterpret_cast<ExOverlapped*>(over) };
-		int userId{ static_cast<int>(key) };
-		Client& curClient{ clients[userId] };
-
-		switch (exOver->operation) {
-		case EOperation::E_RECV: {
-			if (ioByte == 0) 
-				disconnect(userId);
-			else {
-				recvPacketConstruct(userId, ioByte);
-				DWORD flags{ 0 };
-				ZeroMemory(&curClient.recvOverlapped.overlapped,
-					sizeof(curClient.recvOverlapped.overlapped));
-
-				WSARecv(curClient.socket, &curClient.recvOverlapped.wsabuf, 1, NULL,
-					&flags, &curClient.recvOverlapped.overlapped, NULL);
-			}
-			break;
-		}
-		case EOperation::E_SEND:
-			if (ioByte == 0)
-				disconnect(userId);
-			delete exOver;
-			break;
-		case EOperation::E_ACCEPT: {
-			int userId{ currentUserId++ };
-			currentUserId = currentUserId % MAX_USER_SIZE;
-			Client& targetClient{ clients[userId] };
-			CreateIoCompletionPort(reinterpret_cast<HANDLE>(clientSock), iocpHandle, userId, 0);
-
-			targetClient.id = userId;
-			targetClient.prevSize = 0;
-			targetClient.recvOverlapped.operation = EOperation::E_RECV;
-			targetClient.recvOverlapped.wsabuf.buf = targetClient.recvOverlapped.ioBuffer;
-			targetClient.recvOverlapped.wsabuf.len = MAX_BUFFER_SIZE;
-			targetClient.socket = clientSock;
-			targetClient.x = rand() % WORLD_WIDTH;
-			targetClient.y = rand() % WORLD_HEIGHT;
-
-			DWORD flags{ 0 };
-
-			WSARecv(clientSock, &targetClient.recvOverlapped.wsabuf, 1, NULL,
-				&flags, &targetClient.recvOverlapped.overlapped, NULL);
-
-			clientSock = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
-			ZeroMemory(&acceptOver.overlapped, sizeof(acceptOver.overlapped));
-			AcceptEx(listenSock, clientSock, acceptOver.ioBuffer, NULL, sizeof(sockaddr_in) + 16, sizeof(sockaddr_in) + 16,
-				NULL, &acceptOver.overlapped);
-			break;
-		}
-		}
-	}
+	std::vector<std::thread> workers{};
+	for (int i = 0; i < 4; ++i)
+		workers.emplace_back(workerThread);
+	for (auto& th : workers)
+		th.join();
 }
