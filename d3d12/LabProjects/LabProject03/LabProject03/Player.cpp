@@ -157,3 +157,70 @@ void CAirplanePlayer::OnUpdateTransform(){
 	(XMMatrixRotationRollPitchYaw(XMConvertToRadians(90.0f), 0.0f, 0.0f),
 		XMLoadFloat4x4(&worldMatrix)));
 }
+
+void CAirplanePlayer::Update(float fElapsedTime){
+	CPlayer::Update(fElapsedTime);
+
+	for (auto it = bullets.begin(); it != bullets.end();) {
+		if (!(*it)->GetLive() || XMVectorGetX(XMVector3LengthEst(
+			XMVectorSubtract(XMLoadFloat3(&(*it)->GetPosition()), XMLoadFloat3(&position)))) > 500.0f) {
+			delete (*it);
+			it = bullets.erase(it);
+		}
+		else 
+			++it;
+	}
+}
+
+void CAirplanePlayer::ShootBullet(){
+	CCubeMesh* pMesh{ new CCubeMesh{1.0f, 1.0f, 1.0f} };
+
+	CBullet* bullet{ new CBullet };
+	bullet->SetMesh(pMesh);
+	bullet->SetColor(RGB(255, 0, 0));
+	bullet->SetPosition(position);
+	bullet->SetMovingDirection(look);
+	bullet->SetMovingSpeed(100.0f);
+	if (pickingTarget) {
+		bullet->SetTarget(pickingTarget);
+		pickingTarget = nullptr;
+	}
+	bullets.push_back(bullet);
+}
+
+void CAirplanePlayer::SetPickingObject(CGameObject* object){
+	pickingTarget = object;
+}
+
+CBullet::CBullet(){
+	XMVECTOR minVect{ XMVectorSet(-0.5f, -0.5f, -0.5f, 1.0f) };
+	XMVECTOR maxVect{ XMVectorSet(0.5f, 0.5f, 0.5f, 1.0f) };
+
+	BoundingBox box{};
+	BoundingBox::CreateFromPoints(box, minVect, maxVect);
+}
+
+BoundingBox CBullet::getCollisionBox(){
+	BoundingBox curColl{ boundBox };
+	curColl.Transform(curColl, XMLoadFloat4x4(&worldMatrix));
+	return curColl;
+}
+
+void CBullet::SetLive(bool bFlags){
+	bLive = bFlags;
+}
+
+void CBullet::Animate(float fElapsedTime){
+	CGameObject::Animate(fElapsedTime);
+	if (shootTarget) {
+		fShootTime += fElapsedTime;
+		if (fShootTime > 0.3f) {
+			XMStoreFloat3(&direction, XMVector3Normalize(XMVectorSubtract(
+				XMLoadFloat3(&shootTarget->GetPosition()), XMLoadFloat3(&GetPosition()))));
+		}
+	}
+}
+
+void CBullet::SetTarget(CGameObject* target){
+	shootTarget = target;
+}

@@ -47,7 +47,7 @@ void CGameObject::SetPosition(float x, float y, float z) {
 	worldMatrix._43 = z;
 }
 
-void CGameObject::SetPosition(DirectX::XMFLOAT3& pos){
+void CGameObject::SetPosition(const DirectX::XMFLOAT3& pos){
 	worldMatrix._41 = pos.x;
 	worldMatrix._42 = pos.y;
 	worldMatrix._43 = pos.z;
@@ -61,15 +61,6 @@ void CGameObject::SetRotationAxis(const DirectX::XMFLOAT3& axis){
 	XMStoreFloat3(&rotationAxis, XMVector3Normalize(XMLoadFloat3(&axis)));
 }
 
-
-//void CGameObject::SetRotation(float x, float y, float z) {
-//	XMMATRIX mat{ XMMatrixRotationRollPitchYaw(z, x, y) };
-//	::memcpy(&worldMatrix, &mat, sizeof(float) * 12);
-//}
-//void CGameObject::SetRotationSpeed(float x, float y, float z) {
-//	XMStoreFloat3(&rotationSpeed, XMVECTOR{ x,y,z });
-//}
-// 객체를 x, y, z 축으로 이동
 void CGameObject::Move(XMFLOAT3& dir, float fSpeed) {
 	SetPosition(worldMatrix._41 + dir.x * fSpeed,
 		worldMatrix._42 + dir.y * fSpeed,
@@ -84,7 +75,6 @@ void CGameObject::Rotate(float fPitch, float fYaw, float fRoll) {
 	) };
 	XMStoreFloat4x4(&worldMatrix, XMMatrixMultiply(
 		rot, XMLoadFloat4x4(&worldMatrix)));
-
 }
 
 void CGameObject::Rotate(DirectX::XMFLOAT3& axis, float fAngle){

@@ -62,14 +62,15 @@ void CMesh::Render(HDC hDCFrameBuffer) {
 			XMFLOAT3 f3CurrentProject{ CGraphicsPipeline::Project(pVertices[i].position) };
 			bCurrentInside = (-1.0f <= f3CurrentProject.x) && (f3CurrentProject.x <= 1.0f)
 				&& (-1.0f <= f3CurrentProject.y) && (f3CurrentProject.y <= 1.0f);
-			if (((f3PreviousProject.z >= 0.0f) || (f3CurrentProject.z >= 0.0f))
+			if (((f3PreviousProject.z >= 0.0f) && (f3CurrentProject.z <= 1.0f))
 				&& ((bCurrentInside || bPreviousInside))) 
 				::Draw2DLine(hDCFrameBuffer, f3PreviousProject, f3CurrentProject);
 			
 			f3PreviousProject = f3CurrentProject;
 			bPreviousInside = bCurrentInside;
 		}
-		if (((f3PreviousProject.z >= 0.0f) || (f3InitialProject.z >= 0.0f))
+
+		if (((f3InitialProject.z >= 0.0f) && (f3InitialProject.z <= 1.0f))
 			&& ((bInitialInside || bPreviousInside))) 
 			::Draw2DLine(hDCFrameBuffer, f3PreviousProject, f3InitialProject);
 		
@@ -278,4 +279,51 @@ CAirplaneMesh::CAirplaneMesh(float fWidth, float fHeight, float fDepth) : CMesh(
 	pFace->SetVertex(1, CVertex(-fx, -y3, +fz));
 	pFace->SetVertex(2, CVertex(-fx, -y3, -fz));
 	SetPolygon(i++, pFace);
+}
+
+CMapMesh::CMapMesh(float fWidth, float fHeight, float fDepth) : CMesh(40){
+	float width{ fWidth / 10.0f }, height{ fHeight / 10.0f }, depth{ fDepth / 10.0f };
+	float halfWidth{ fWidth / 2.0f }, halfHeight{ fHeight / 2.0f }, halfDepth{ fDepth / 2.0f };
+
+	// ¾Æ·¡
+	int index{};
+	for (int i = -5; i < 5; ++i){
+		CPolygon* pBottomFace = new CPolygon(4);
+		pBottomFace->SetVertex(0, CVertex{ (width * i), -halfHeight, -halfDepth });
+		pBottomFace->SetVertex(1, CVertex{ (width * i), -halfHeight, +halfDepth });
+		pBottomFace->SetVertex(2, CVertex{ (width * (i + 1)), -halfHeight, +halfDepth });
+		pBottomFace->SetVertex(3, CVertex{ (width * (i + 1)), -halfHeight, -halfDepth });
+		SetPolygon(index++, pBottomFace);
+	}
+	// À§  
+	for (int i = -5; i < 5; ++i){
+		CPolygon* pTopFace = new CPolygon(4);
+		pTopFace->SetVertex(0, CVertex{ (width * i), +halfHeight, -halfDepth });
+		pTopFace->SetVertex(1, CVertex{ (width * i), +halfHeight, +halfDepth });
+		pTopFace->SetVertex(2, CVertex{ (width * (i + 1)), +halfHeight, +halfDepth });
+		pTopFace->SetVertex(3, CVertex{ (width * (i + 1)), +halfHeight, -halfDepth });
+		SetPolygon(index++, pTopFace);
+	}
+	// ÁÂ
+	for (int i = -5; i < 5; ++i){
+		CPolygon* pLeftFace = new CPolygon(4);
+		pLeftFace->SetVertex(0, CVertex{ -halfWidth, (height * i), -halfDepth });
+		pLeftFace->SetVertex(1, CVertex{ -halfWidth, (height * i), +halfDepth });
+		pLeftFace->SetVertex(2, CVertex{ -halfWidth, (height * (i + 1)), +halfDepth });
+		pLeftFace->SetVertex(3, CVertex{ -halfWidth, (height * (i + 1)), -halfDepth });
+		SetPolygon(index++, pLeftFace);
+	}
+	// ¿ì
+	for (int i = -5; i < 5; ++i){
+		CPolygon* pRightFace = new CPolygon(4);
+		pRightFace->SetVertex(0, CVertex{ halfWidth, (height * i), -halfDepth });
+		pRightFace->SetVertex(1, CVertex{ halfWidth, (height * i), +halfDepth });
+		pRightFace->SetVertex(2, CVertex{ halfWidth, (height * (i + 1)), +halfDepth });
+		pRightFace->SetVertex(3, CVertex{ halfWidth, (height * (i + 1)), -halfDepth });
+		SetPolygon(index++, pRightFace);
+	}
+}
+
+CMapMesh::~CMapMesh(){
+
 }

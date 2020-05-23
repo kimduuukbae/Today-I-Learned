@@ -45,6 +45,12 @@ public:
 	virtual void Render(HDC hDCFrameBuffer);
 };
 
+class CMapMesh : public CMesh {
+public:
+	CMapMesh(float fWidth, float fHeight, float fDepth);
+	virtual ~CMapMesh();
+};
+
 class CAirplaneMesh : public CMesh {
 public:
 	CAirplaneMesh(float fWidth, float fHeight, float fDepth);

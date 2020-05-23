@@ -37,20 +37,49 @@ public:
 	
 	void Rotate(float fPitch, float fYaw, float fRoll);
 	void SetCameraOffset(const DirectX::XMFLOAT3& cameraOffset);
-	void Update(float fElapsedTime = 0.016f);
+	virtual void Update(float fElapsedTime = 0.016f);
 	virtual void OnUpdateTransform();
 	virtual void Animate(float fElapsedTime);
-
 	void SetCamera(CCamera* pCamera) {
 		m_pCamera = pCamera;
 	}
 	CCamera* GetCamera() { return m_pCamera; }
 };
 
+class CBullet : public CGameObject {
+public:
+	CBullet();
+	virtual ~CBullet() {}
+	BoundingBox getCollisionBox();
+	void SetLive(bool bFlags);
+
+	virtual void Animate(float fElapsedTime) override;
+	constexpr bool GetLive() {
+		return bLive;
+	}
+	void SetTarget(CGameObject* target);
+private:
+	BoundingBox boundBox{};
+	CGameObject* shootTarget{ nullptr };
+	float fShootTime{ 0.0f };
+	bool bLive{ true };
+};
+
 class CAirplanePlayer : public CPlayer {
 public:
-	CAirplanePlayer() {};
+	CAirplanePlayer() {}
 	virtual ~CAirplanePlayer() {};
 
 	virtual void OnUpdateTransform();
+	virtual void Update(float fElapsedTime = 0.016f) override;
+	void ShootBullet();
+
+	void SetPickingObject(CGameObject* object);
+	const inline std::list<CBullet*>& GetBullets() const {
+		return bullets;
+	}
+
+private:
+	CGameObject* pickingTarget{ nullptr };
+	std::list<CBullet*> bullets;
 };

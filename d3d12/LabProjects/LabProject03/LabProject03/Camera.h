@@ -33,9 +33,9 @@ private:
 	DirectX::XMFLOAT3 look{ 0.0f, 0.0f,1.0f };
 
 	//카메라 변환 행렬
-	DirectX::XMFLOAT4X4 viewMatrix{ Matrix4x4::identity() };
+	
 	// 원근 투영 변환 행렬
-	DirectX::XMFLOAT4X4 projectMatrix{ Matrix4x4::identity() };
+	
 	
 
 	// 카메라의 시야각, 투영 사각형가지의 거리
@@ -47,7 +47,10 @@ private:
 public:
 	// 카메라 * 원근 투영 변환 행렬
 	DirectX::XMFLOAT4X4 viewProjectMatrix{ Matrix4x4::identity() };
+	DirectX::XMFLOAT4X4 projectMatrix{ Matrix4x4::identity() };
+	DirectX::XMFLOAT4X4 viewMatrix{ Matrix4x4::identity() };
 	CViewport m_Viewport{};
+
 	void GenerateViewMatrix();
 	void GeneratePerspectiveProjectionMatrix(float fNearPlaneDistance, float fFarPlaneDistance, float fFovAngle);
 	void SetViewport(int nLeft, int nTop, int nWidth, int nHeight);

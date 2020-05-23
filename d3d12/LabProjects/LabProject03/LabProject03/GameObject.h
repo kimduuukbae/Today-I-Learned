@@ -9,7 +9,7 @@ public:
 	~CGameObject();
 
 	DirectX::XMFLOAT4X4 worldMatrix{ Matrix4x4::identity() };
-private:
+protected:
 	
 	DirectX::XMFLOAT3 direction{ 0.0f, 0.0f, 1.0f };
 	DirectX::XMFLOAT3 rotationAxis{ 0.0f, 1.0f, 0.0f };
@@ -26,7 +26,10 @@ public:
 	void SetMesh(CMesh* pMesh);
 
 	void SetPosition(float x, float y, float z);
-	void SetPosition(DirectX::XMFLOAT3& pos);
+	constexpr XMFLOAT3 GetPosition() {
+		return XMFLOAT3{ worldMatrix._41, worldMatrix._42, worldMatrix._43 };
+	}
+	void SetPosition(const DirectX::XMFLOAT3& pos);
 
 	void SetMovingDirection(const DirectX::XMFLOAT3& dir);
 	void SetMovingSpeed(float fSpeed) { speed = fSpeed; }
@@ -41,6 +44,10 @@ public:
 	void Rotate(DirectX::XMFLOAT3& axis, float fAngle);
 
 	void SetColor(DWORD dwColor);
+
+	constexpr XMFLOAT3 GetDirection() {
+		return direction;
+	}
 public:
 	virtual void OnUpdateTransform() {}
 	// 메쉬의 정점 하나를 게임 객체의 위치와 방향을 사용하여 월드 좌표 변환을 함

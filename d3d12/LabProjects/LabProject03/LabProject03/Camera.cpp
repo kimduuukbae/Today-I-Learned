@@ -141,7 +141,7 @@ void CCamera::SetPosition(float x, float y, float z) {
 }
 
 void CCamera::SetRotation(float fPitch, float fYaw, float fRoll) {
-	XMMATRIX mat{ XMMatrixRotationRollPitchYaw(fRoll, fPitch, fYaw) };
+	XMMATRIX mat{ XMMatrixRotationRollPitchYaw(fPitch, fYaw, fRoll) };
 	::memcpy(&viewMatrix, &mat, sizeof(float) * 12);
 }
 

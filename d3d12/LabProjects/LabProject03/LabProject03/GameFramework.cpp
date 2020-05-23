@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "GameFramework.h"
-
+#include "GraphicsPipeline.h"
+#include <iostream>
 using namespace DirectX;
 
 void CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd) {
@@ -97,11 +98,55 @@ void CGameFramework::ProcessInput() {
 		::SetCursor(NULL);
 		POINT ptCursorPos;
 		::GetCursorPos(&ptCursorPos);
+		POINT ptPickingPos = ptCursorPos;
 		float cxMouseDelta =
 			static_cast<float>(ptCursorPos.x - m_ptOldCursorPos.x) / 3.0f;
 		float cyMouseDelta =
 			static_cast<float>(ptCursorPos.y - m_ptOldCursorPos.y) / 3.0f;
-	
+
+
+		// 피킹 = 오른쪽 클릭을 하면 스크린 좌표가 넘어옴
+		// 로컬' = 로컬 * 월드 * 뷰 * 투영 + 스크린 = 객체
+		// 마우스를 스크린 좌표에서 로컬로 변경시키면
+		// 두 개 이상 충돌되는 문제가 사라짐, 스크린 좌표에서 체크하면 겹쳐잇으면 충돌남
+		// 로컬까지 가서 z 확인하지 않고, 월드에서 z 처리
+		if (pKeyBuffer[VK_RBUTTON] & 0xF0) {
+			ScreenToClient(m_hWnd, &ptPickingPos);
+			// 마지막으로 클릭된 좌표를 클라이언트 좌표로 수정
+
+			CViewport& viewport{ m_pPlayer->GetCamera()->m_Viewport };
+			CCamera& cam{ *m_pPlayer->GetCamera() };
+
+			// 화면 좌표계 -> 투영 좌표
+			float xProjectPos{ 2.0f * ptPickingPos.x / (float)viewport.m_nWidth - 1.0f  };
+			float yProjectPos{ -2.0f * ptPickingPos.y / (float)viewport.m_nHeight + 1.0f  };
+			
+			// 투영 좌표 -> 카메라 좌표
+			// 투영 좌표에서도 충돌 처리를 할 순 있으나 애들이 겹칠 수 있음
+			// 원근 투영 좌표 행렬에다가 투영좌표 값을 나누면 카메라 좌표로 변함
+			// 교수님 pdf 에 나와있음.
+
+			float xCamPos{ xProjectPos / cam.projectMatrix._11};
+			float yCamPos{ yProjectPos / cam.projectMatrix._22 };
+			float zCamPos{ 1.0f };
+
+			XMFLOAT4X4 viewInverse{};
+			XMStoreFloat4x4(&viewInverse, XMMatrixInverse(nullptr, XMLoadFloat4x4(&cam.viewMatrix)));
+			
+			// 카메라 좌표 행렬 역행렬로 광선들의 월드 좌표를 구함
+			// 카메라 좌표 행렬 역행렬 -> 월드 좌표 행렬
+			XMFLOAT3 rayDir{xCamPos, yCamPos, zCamPos}, rayDirOrigin{};
+			XMStoreFloat3(&rayDirOrigin, 
+				XMVector3TransformCoord(XMLoadFloat3(&rayDirOrigin), XMLoadFloat4x4(&viewInverse)));
+			XMStoreFloat3(&rayDir,
+				XMVector3TransformNormal(XMLoadFloat3(&rayDir), XMLoadFloat4x4(&viewInverse)));
+
+			// 모든 오브젝트들에 대해서 광선 쏴서 피킹처리 해봄
+			// 피킹했는데 피킹된 객체가 있다면 player에게 넘겨줌
+			if (int idx{ m_pScene->checkObjects(rayDirOrigin, rayDir) };idx != -1)
+				m_pPlayer->SetPickingObject(m_pScene->GetGameObject(idx));
+		}
+
 		::SetCursorPos(m_ptOldCursorPos.x, m_ptOldCursorPos.y);
 		if (cxMouseDelta || cyMouseDelta) {
 			if (pKeyBuffer[VK_RBUTTON] & 0xF0)
@@ -115,7 +160,11 @@ void CGameFramework::ProcessInput() {
 
 void CGameFramework::AnimateObjects() {
 	float fTimeElapsed{ m_GameTimer.GetTimeElapsed() };
-	if (m_pPlayer) m_pPlayer->Animate(fTimeElapsed);
+	if (m_pPlayer) {
+		m_pPlayer->Animate(fTimeElapsed);
+		for (auto& bullet : m_pPlayer->GetBullets())
+			bullet->Animate(fTimeElapsed);
+	}
 	if (m_pScene) m_pScene->Animate(fTimeElapsed);
 }
 
@@ -126,14 +175,21 @@ void CGameFramework::FrameAdvance() {
 	ProcessInput();
 	AnimateObjects();
 
-	ClearFrameBuffer(RGB(75, 45, 105));
+	ClearFrameBuffer(RGB(255,255,255));
 
 	CCamera* pCamera = m_pPlayer->GetCamera();
-	if (m_pScene)
+	if (m_pScene) {
 		m_pScene->Render(m_hDCFrameBuffer, pCamera);
+		m_pScene->ProcessCollision();
+	}
 
-	if (m_pPlayer)
+	if (m_pPlayer) {
 		m_pPlayer->Render(m_hDCFrameBuffer, pCamera);
+		for (auto& bullet : m_pPlayer->GetBullets())
+			bullet->Render(m_hDCFrameBuffer, pCamera);
+		
+	}
+
 
 	PresentFrameBuffer();
 
@@ -143,6 +199,7 @@ void CGameFramework::FrameAdvance() {
 
 void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam) {
 	switch (nMessageID) {
+		
 	case WM_RBUTTONDOWN:
 	case WM_LBUTTONDOWN:
 		::SetCapture(hWnd);
@@ -152,7 +209,6 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 	case WM_RBUTTONUP:
 		::ReleaseCapture();
 		break;
-
 	case WM_MOUSEMOVE:
 		break;
 	default:
@@ -171,6 +227,7 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 		case VK_RETURN:
 			break;
 		case VK_CONTROL:
+			m_pPlayer->ShootBullet();
 			break;
 		default:
 			if (m_pScene) m_pScene->OnProcessingKeyboardMessage(hWnd, nMessageID, wParam, lParam);
@@ -187,6 +244,7 @@ LRESULT CALLBACK CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMess
 	case WM_LBUTTONDOWN:
 	case WM_RBUTTONDOWN:
 	case WM_LBUTTONUP:
+	case WM_RBUTTONUP:
 	case WM_MOUSEMOVE:
 		OnProcessingMouseMessage(hWnd, nMessageID, wParam, lParam);
 		break;

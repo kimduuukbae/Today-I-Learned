@@ -17,7 +17,7 @@ private:
 	HBITMAP m_hBitmapFrameBuffer = { nullptr };
 	HBITMAP m_hBitmapSelect = { nullptr };
 
-	CPlayer* m_pPlayer = { nullptr };
+	CAirplanePlayer* m_pPlayer = { nullptr };
 	CScene* m_pScene = { nullptr };
 	CGameTimer m_GameTimer;
 	POINT m_ptOldCursorPos;

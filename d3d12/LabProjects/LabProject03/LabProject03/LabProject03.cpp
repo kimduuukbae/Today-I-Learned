@@ -2,6 +2,11 @@
 #include "LabProject03.h"
 #include "GameFramework.h"
 
+#ifdef _DEBUG
+#pragma comment(linker, "/entry:wWinMainCRTStartup /subsystem:console")
+#endif
+
+
 #define MAX_LOADSTRING 100
 
 // 전역 변수:
