@@ -1,9 +1,10 @@
 #include <iostream>
 #include <WS2tcpip.h>
 #include <MSWSock.h>
-#include <vector>
+#include <unordered_set>
 #include <thread>
 #include <mutex>
+#include <vector>
 #include "protocol.h"
 
 #pragma comment(lib, "ws2_32.lib")
@@ -11,7 +12,10 @@
 
 constexpr int MAX_PACKET_SIZE{ 255 };
 constexpr int MAX_BUFFER_SIZE{ 1024 };
-constexpr int MAX_USER_SIZE{ 10 };
+constexpr int MAX_USER_SIZE{ 10000 };
+
+constexpr int VIEW_RADIUS{ 6 };
+
 enum class EOperation : int {
 	E_RECV,
 	E_SEND,
@@ -25,9 +29,9 @@ enum class EStatus : int {
 };
 
 struct ExOverlapped {
-	WSAOVERLAPPED overlapped;
-	EOperation operation;
-	char ioBuffer[MAX_BUFFER_SIZE];
+	WSAOVERLAPPED overlapped{};
+	EOperation operation{};
+	char ioBuffer[MAX_BUFFER_SIZE]{};
 	union {
 		WSABUF wsabuf;
 		SOCKET clientSock;
@@ -36,34 +40,53 @@ struct ExOverlapped {
 };
 
 struct Client {
-	std::mutex mtx;
-	SOCKET socket;
-	int id;
-	ExOverlapped recvOverlapped;
-	int prevSize;
-	char packetBuffer[MAX_PACKET_SIZE];
-	EStatus status;
-
-	short x, y;
-	char name[MAX_ID_LEN + 1];
+	std::mutex mtx{};
+	SOCKET socket{};
+	int id{};
+	ExOverlapped recvOverlapped{};
+	int prevSize{};
+	char packetBuffer[MAX_PACKET_SIZE]{};
+	EStatus status{};
+	std::unordered_set<int> viewList{};
+	
+	short x{}, y{};
+	char name[MAX_ID_LEN + 1]{};
+	unsigned int moveTime{};
 };
 
 Client clients[MAX_USER_SIZE]{};
-HANDLE iocpHandle;
-SOCKET listenSock;
+HANDLE iocpHandle{};
+SOCKET listenSock{};
+
+std::mutex getQueueMtx{};
+std::vector<ExOverlapped*> overlapCluster{};
+
+bool isInArea(int userId, int targetId) {
+	return (std::abs(clients[userId].x - clients[targetId].x) < VIEW_RADIUS) &
+		 (std::abs(clients[userId].y - clients[targetId].y) < VIEW_RADIUS);
+}
 
 void sendPacket(int userId, void* packet) {
-	char* buf{ reinterpret_cast<char*>(packet) };
-	Client& user{ clients[userId] };
 
-	ExOverlapped* exOver = new ExOverlapped{};
+	char* buf{ reinterpret_cast<char*>(packet) };
+	ExOverlapped* exOver{ nullptr };
+
+	getQueueMtx.lock();
+	if (overlapCluster.size()) {
+		exOver = overlapCluster.back();
+		overlapCluster.pop_back();
+	}
+	else
+		exOver = new ExOverlapped{};
+	getQueueMtx.unlock();
+
 	ZeroMemory(&exOver->overlapped, sizeof(exOver->overlapped));
 	exOver->operation = EOperation::E_SEND;
 	exOver->wsabuf.buf = exOver->ioBuffer;
 	exOver->wsabuf.len = buf[0];
 	memcpy(exOver->ioBuffer, buf, buf[0]);
 
-	WSASend(user.socket, &exOver->wsabuf, 1, NULL, 0, &exOver->overlapped, NULL);
+	WSASend(clients[userId].socket, &exOver->wsabuf, 1, NULL, 0, &exOver->overlapped, NULL);
 }
 
 void sendLoginPacket(int userId) {
@@ -87,7 +110,7 @@ void sendMovePacket(int userId, int targetId) {
 	packet.type = S2C_MOVE;
 	packet.x = clients[targetId].x;
 	packet.y = clients[targetId].y;
-
+	packet.move_time = clients[targetId].moveTime;
 	sendPacket(userId, &packet);
 }
 
@@ -135,27 +158,66 @@ void clientMove(int userId, int direction) {
 		DebugBreak();
 		exit(-1);
 	}
+
 	user.x = x;
 	user.y = y;
+
+	clients[userId].mtx.lock();
+	std::unordered_set<int> oldViewList{};
+	oldViewList.swap(clients[userId].viewList);
+	clients[userId].mtx.unlock();
+
 	for (auto& client : clients) {
-		client.mtx.lock();
-		if (client.status == EStatus::E_ACTIVE)
-			sendMovePacket(client.id, userId);
-		client.mtx.unlock();
+		if (client.status == EStatus::E_ACTIVE) {
+			if (oldViewList.count(client.id)) {
+				// 뷰 리스트에 있고 시야에도 보임
+				if (isInArea(userId, client.id)) 
+					sendMovePacket(client.id, userId);
+				else {
+					// 뷰 리스트에 있는데, 시야에 보이질 않음
+					client.mtx.lock();
+					if (client.viewList.count(userId)) {
+						client.viewList.erase(userId);
+						sendLeavePacket(client.id, userId);
+					}
+					client.mtx.unlock();
+					oldViewList.erase(client.id);
+					sendLeavePacket(userId, client.id);
+				}
+			}
+			else {
+				if (isInArea(userId, client.id)) {
+					// 뷰 리스트에 없는데, 시야에 보임
+					client.mtx.lock();
+					if (!client.viewList.count(userId)) {
+						client.viewList.emplace(userId);
+						sendEnterPacket(client.id, userId);
+					}
+					client.mtx.unlock();
+					oldViewList.emplace(client.id);
+					sendEnterPacket(userId, client.id);
+				}
+			}
+		}
 	}
+
+	clients[userId].mtx.lock();
+	clients[userId].viewList.swap(oldViewList);
+	clients[userId].mtx.unlock();
 }
 
 void enterGame(int userId, char name[]) {
-
 	clients[userId].mtx.lock();
 	strcpy_s(clients[userId].name, name);
 	clients[userId].name[MAX_ID_LEN] = '\0';
 	sendLoginPacket(userId);
 	
 	for (int i = 0; i < MAX_USER_SIZE; ++i) {
-		if (userId == i)
+		if (userId == i || !isInArea(userId, i))
 			continue;
-
+		// 처음 접속했을 때 viewList에 넣어주어야 하는가?
+		// 어짜피 move할때 새로 싹 다 넣어줌, enterPacket 보내면 적어도 유저들이 보이긴 함
+		// move할때로 미루자!
 		clients[i].mtx.lock();
 		if (clients[i].status == EStatus::E_ACTIVE) {
 			sendEnterPacket(userId, i);
@@ -168,9 +230,12 @@ void enterGame(int userId, char name[]) {
 }
 
 void clientInit() {
+	overlapCluster.reserve(MAX_USER_SIZE);
 	for (int i = 0; i < MAX_USER_SIZE; ++i) {
 		clients[i].id = i;
-		clients[i].status = EStatus::E_FREE;
+		clients[i].viewList.reserve(100);
+		clients[i].viewList.emplace(i);
+		overlapCluster.push_back(new ExOverlapped);
 	}
 }
 
@@ -201,6 +266,7 @@ void processPacket(int userId, char* buf) {
 	}
 	case C2S_MOVE: {
 		cs_packet_move* packet = reinterpret_cast<cs_packet_move*>(buf);
+		clients[userId].moveTime = packet->move_time;
 		clientMove(userId, packet->direction);
 		break;
 	}
@@ -270,7 +336,11 @@ void workerThread() {
 		case EOperation::E_SEND:
 			if (ioByte == 0)
 				disconnect(userId);
-			delete exOver;
+
+			getQueueMtx.lock();
+			overlapCluster.push_back(exOver);
+			getQueueMtx.unlock();
+
 			break;
 		case EOperation::E_ACCEPT: {
 			int userId{ -1 };
@@ -333,13 +403,15 @@ int main() {
 
 	clientInit();
 
-	CreateIoCompletionPort(reinterpret_cast<HANDLE>(listenSock), iocpHandle, -1, 0);
+	CreateIoCompletionPort(reinterpret_cast<HANDLE>(listenSock), iocpHandle, 999, 0);
 	SOCKET clientSock{ WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED) };
 	ExOverlapped acceptOver{};
 	acceptOver.operation = EOperation::E_ACCEPT;
 	acceptOver.clientSock = clientSock;
 	AcceptEx(listenSock, clientSock, acceptOver.ioBuffer, NULL, sizeof(sockaddr_in) + 16, sizeof(sockaddr_in) + 16,
 		NULL, &acceptOver.overlapped);
+
+	
 
 	std::vector<std::thread> workers{};
 	for (int i = 0; i < 4; ++i)

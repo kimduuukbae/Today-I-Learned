@@ -24,7 +24,8 @@ UE4VS/*
 *.rc
 *.tlog
 *.lastbuildstate
-
+*.ipdb
+*.iobj
 # Precompiled Headers
 *.gch
 *.pch

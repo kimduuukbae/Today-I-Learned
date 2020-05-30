@@ -40,6 +40,10 @@ void CEnemyBox::SetLive(bool bFlags){
 			i->SetPosition(GetPosition());
 }
 
+void CEnemyBox::SetTargeting(bool bFlags){
+	bIsTargeting = bFlags;
+}
+
 void CEnemyBox::Animate(float fElapsedTime){
 	if (bLive) 
 		CGameObject::Animate(fElapsedTime);
@@ -52,6 +56,7 @@ void CEnemyBox::Animate(float fElapsedTime){
 		else {
 			fDieTime = 0.0f;
 			SetLive(true);
+			SetTargeting(false);
 		}
 	}
 }

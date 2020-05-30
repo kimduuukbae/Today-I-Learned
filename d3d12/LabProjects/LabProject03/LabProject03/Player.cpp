@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include "EnemyBox.h"
 #include "Player.h"
 using namespace DirectX;
 void CPlayer::SetPosition(float x, float y, float z){
@@ -181,9 +182,15 @@ void CAirplanePlayer::ShootBullet(){
 	bullet->SetPosition(position);
 	bullet->SetMovingDirection(look);
 	bullet->SetMovingSpeed(100.0f);
-	if (pickingTarget) {
-		bullet->SetTarget(pickingTarget);
-		pickingTarget = nullptr;
+	
+	if(pickingTarget){
+		if (CEnemyBox* enemy{ dynamic_cast<CEnemyBox*>(pickingTarget) }; 
+			enemy && !enemy->GetTargeting()) {
+			enemy->SetTargeting(true);
+			bullet->SetTarget(pickingTarget);
+			pickingTarget = nullptr;
+			bullet->SetColor(RGB(0, 0, 255));
+		}
 	}
 	bullets.push_back(bullet);
 }
