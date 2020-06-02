@@ -1,86 +1,70 @@
 #include <iostream>
-#include <WS2tcpip.h>
-#include <MSWSock.h>
-#include <unordered_set>
 #include <thread>
-#include <mutex>
+#include <queue>
+#include <tuple>
+#include <string>
 #include <vector>
-#include "protocol.h"
+#include <array>
+#include <concurrent_priority_queue.h>
 
 #pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "mswsock.lib")
 
-constexpr int MAX_PACKET_SIZE{ 255 };
-constexpr int MAX_BUFFER_SIZE{ 1024 };
-constexpr int MAX_USER_SIZE{ 10000 };
-
-constexpr int VIEW_RADIUS{ 6 };
-
-enum class EOperation : int {
-	E_RECV,
-	E_SEND,
-	E_ACCEPT
-};
-
-enum class EStatus : int {
-	E_FREE,
-	E_ALLOC,
-	E_ACTIVE
-};
-
-struct ExOverlapped {
-	WSAOVERLAPPED overlapped{};
-	EOperation operation{};
-	char ioBuffer[MAX_BUFFER_SIZE]{};
-	union {
-		WSABUF wsabuf;
-		SOCKET clientSock;
-	};
-	
-};
-
-struct Client {
-	std::mutex mtx{};
-	SOCKET socket{};
-	int id{};
-	ExOverlapped recvOverlapped{};
-	int prevSize{};
-	char packetBuffer[MAX_PACKET_SIZE]{};
-	EStatus status{};
-	std::unordered_set<int> viewList{};
-	
-	short x{}, y{};
-	char name[MAX_ID_LEN + 1]{};
-	unsigned int moveTime{};
-};
+#include "IOCPServer.h"
 
 Client clients[MAX_USER_SIZE]{};
 HANDLE iocpHandle{};
 SOCKET listenSock{};
 
-std::mutex getQueueMtx{};
-std::vector<ExOverlapped*> overlapCluster{};
+Npc npcs[MAX_NPC_SIZE]{};
+concurrency::concurrent_priority_queue <EventType> eventQueue{};
+std::array<std::array<std::unordered_set<int>, WORLD_HEIGHT / SECTOR_SIZE>, WORLD_WIDTH / SECTOR_SIZE> npcSector{};
+std::array<std::array<std::unordered_set<int>, WORLD_HEIGHT / SECTOR_SIZE>, WORLD_WIDTH / SECTOR_SIZE> clientsSector{};
+std::mutex clientsSectorMtx[WORLD_WIDTH / SECTOR_SIZE][WORLD_HEIGHT / SECTOR_SIZE]{};
+std::mutex npcSectorMtx[WORLD_WIDTH / SECTOR_SIZE][WORLD_HEIGHT / SECTOR_SIZE]{};
+
+
+std::pair<int, int> findPath(const Npc& target) {
+	int x{ target.x }, y{ target.y };
+	int direction{ rand() % 4 };
+	switch (direction) {
+	case D_UP:
+		if (y > 0) --y;
+		break;
+	case D_DOWN:
+		if (y < WORLD_HEIGHT - 1) ++y;
+		break;
+	case D_LEFT:
+		if (x > 0) --x;
+		break;
+	case D_RIGHT:
+		if (x < WORLD_WIDTH - 1) ++x;
+		break;
+	default:
+		DebugBreak();
+		exit(-1);
+	}
+	return { x, y };
+}
+
+std::pair<int, int> getSectorPos(int xPos, int yPos) {
+	return { xPos / SECTOR_SIZE, yPos / SECTOR_SIZE };
+}
 
 bool isInArea(int userId, int targetId) {
 	return (std::abs(clients[userId].x - clients[targetId].x) < VIEW_RADIUS) &
-		 (std::abs(clients[userId].y - clients[targetId].y) < VIEW_RADIUS);
+		(std::abs(clients[userId].y - clients[targetId].y) < VIEW_RADIUS);
+}
+
+bool isInArea(int userX, int userY, int targetX, int targetY) {
+	return (std::abs(userX - targetX) < VIEW_RADIUS) &
+		(std::abs(userY - targetY) < VIEW_RADIUS);
 }
 
 void sendPacket(int userId, void* packet) {
-
 	char* buf{ reinterpret_cast<char*>(packet) };
-	ExOverlapped* exOver{ nullptr };
+	ExOverlapped* exOver{ new ExOverlapped{} };
 
-	getQueueMtx.lock();
-	if (overlapCluster.size()) {
-		exOver = overlapCluster.back();
-		overlapCluster.pop_back();
-	}
-	else
-		exOver = new ExOverlapped{};
-	getQueueMtx.unlock();
-
-	ZeroMemory(&exOver->overlapped, sizeof(exOver->overlapped));
 	exOver->operation = EOperation::E_SEND;
 	exOver->wsabuf.buf = exOver->ioBuffer;
 	exOver->wsabuf.len = buf[0];
@@ -114,6 +98,17 @@ void sendMovePacket(int userId, int targetId) {
 	sendPacket(userId, &packet);
 }
 
+void sendMovePacketNpc(int userId, int npcId) {
+	sc_packet_move packet{};
+	packet.id = npcId;
+	packet.size = sizeof(packet);
+	packet.type = S2C_MOVE;
+	packet.x = npcs[npcId - 10001].x;
+	packet.y = npcs[npcId - 10001].y;
+	packet.move_time = 0;
+	sendPacket(userId, &packet);
+}
+
 void sendEnterPacket(int userId, int targetId) {
 	sc_packet_enter packet{};
 	packet.id = targetId;
@@ -127,6 +122,19 @@ void sendEnterPacket(int userId, int targetId) {
 	sendPacket(userId, &packet);
 }
 
+void sendEnterPacketNpc(int userId, int npcId) {
+	sc_packet_enter packet{};
+	packet.id = npcId;
+	packet.size = sizeof(packet);
+	packet.type = S2C_ENTER;
+	packet.x = npcs[npcId - 10001].x;
+	packet.y = npcs[npcId - 10001].y;
+	strcpy_s(packet.name, "NPC");
+	packet.o_type = O_NPC;
+
+	sendPacket(userId, &packet);
+}
+
 void sendLeavePacket(int userId, int targetId) {
 	sc_packet_leave packet{};
 	packet.id = targetId;
@@ -134,6 +142,136 @@ void sendLeavePacket(int userId, int targetId) {
 	packet.type = S2C_LEAVE;
 
 	sendPacket(userId, &packet);
+}
+
+bool searchSectorNpc(int npcId, int secPosX, int secPosY) {
+
+	if (secPosX < 0 || secPosX >(WORLD_WIDTH / SECTOR_SIZE) - 1 ||
+		secPosY < 0 || secPosY >(WORLD_WIDTH / SECTOR_SIZE) - 1)
+		return false;
+
+	bool bFlags{ false };
+
+	std::vector<int> v{};
+
+	clientsSectorMtx[secPosX][secPosY].lock();
+	v.reserve(clientsSector[secPosX][secPosY].size());
+	for(auto& i : clientsSector[secPosX][secPosY])
+		v.emplace_back(i);
+	clientsSectorMtx[secPosX][secPosY].unlock();
+
+	for (auto idCluster : v) {
+		if (isInArea(clients[idCluster].x, clients[idCluster].y, npcs[npcId].x, npcs[npcId].y)) {
+			npcs[npcId].mtx.lock();
+			if (npcs[npcId].viewList.count(idCluster)) {
+				npcs[npcId].mtx.unlock();
+				bFlags = true;
+				sendMovePacketNpc(idCluster, npcId + 10001);
+			}
+			else {
+				npcs[npcId].viewList.emplace(idCluster);
+				npcs[npcId].mtx.unlock();
+				sendEnterPacketNpc(idCluster, npcId + 10001);
+				bFlags = true;
+			}
+				
+		}
+		else {
+			npcs[npcId].mtx.lock();
+			if (npcs[npcId].viewList.count(idCluster)) {
+				npcs[npcId].viewList.erase(idCluster);
+				npcs[npcId].mtx.unlock();
+				sendLeavePacket(idCluster, npcId + 10001);
+			}
+			else
+				npcs[npcId].mtx.unlock();
+		}
+	}
+	return bFlags;
+}
+
+void searchSector(int userId, int secPosX, int secPosY, std::unordered_set<int>& userViewList) {
+
+	if (secPosX < 0 || secPosX > (WORLD_WIDTH / SECTOR_SIZE) - 1 ||
+		secPosY < 0 || secPosY > (WORLD_WIDTH / SECTOR_SIZE) - 1)
+		return;
+
+	Client& user{ clients[userId] };
+	clientsSectorMtx[secPosX][secPosY].lock();
+	std::unordered_set<int> oldSector{ clientsSector[secPosX][secPosY] };
+	clientsSectorMtx[secPosX][secPosY].unlock();
+
+	std::vector<int> v{};
+
+	npcSectorMtx[secPosX][secPosY].lock();
+	v.reserve(npcSector[secPosX][secPosY].size());
+	for (auto& i : npcSector[secPosX][secPosY])
+		v.emplace_back(i);
+	npcSectorMtx[secPosX][secPosY].unlock();
+
+	for (auto idCluster : v) {
+		int ClusterIdx{ idCluster - 10001 };
+		if (isInArea(user.x, user.y, npcs[ClusterIdx].x, npcs[ClusterIdx].y)) {
+			if (!npcs[ClusterIdx].isActive) {
+				npcs[ClusterIdx].isActive = true;
+				eventQueue.push(EventType{ idCluster, userId, std::chrono::high_resolution_clock::now() });
+			}
+			npcs[ClusterIdx].mtx.lock();
+			if (!npcs[ClusterIdx].viewList.count(userId)) {
+				npcs[ClusterIdx].viewList.emplace(userId);
+				npcs[ClusterIdx].mtx.unlock();
+				sendEnterPacketNpc(userId, idCluster);
+			}
+			else
+				npcs[ClusterIdx].mtx.unlock();
+		}
+		else {
+			npcs[ClusterIdx].mtx.lock();
+			if (npcs[ClusterIdx].viewList.count(userId)) {
+				npcs[ClusterIdx].viewList.erase(userId);
+				npcs[ClusterIdx].mtx.unlock();
+				sendLeavePacket(userId, idCluster);
+			}
+			else
+				npcs[ClusterIdx].mtx.unlock();
+		}
+	}
+	for (auto idCluster : oldSector) {
+		if (userViewList.count(idCluster)) {
+			// 뷰 리스트에 있고 시야에도 보임
+			if (isInArea(userId, idCluster))
+				sendMovePacket(idCluster, userId);
+			else {
+				// 뷰 리스트에 있는데, 시야에 보이질 않음
+				clients[idCluster].mtx.lock();
+				if (clients[idCluster].viewList.count(userId)) {
+					clients[idCluster].viewList.erase(userId);
+					clients[idCluster].mtx.unlock();
+					sendLeavePacket(idCluster, userId);
+				}
+				else
+					clients[idCluster].mtx.unlock();
+
+				userViewList.erase(idCluster);
+				sendLeavePacket(userId, idCluster);
+			}
+		}
+		else {
+			if (isInArea(userId, idCluster)) {
+				// 뷰 리스트에 없는데, 시야에 보임
+				clients[idCluster].mtx.lock();
+				if (!clients[idCluster].viewList.count(userId)) {
+					clients[idCluster].viewList.emplace(userId);
+					clients[idCluster].mtx.unlock();
+					sendEnterPacket(idCluster, userId);
+				}
+				else
+					clients[idCluster].mtx.unlock();
+				userViewList.emplace(idCluster);
+				sendEnterPacket(userId, idCluster);
+			}
+		}
+	}
 }
 
 void clientMove(int userId, int direction) {
@@ -162,43 +300,28 @@ void clientMove(int userId, int direction) {
 	user.x = x;
 	user.y = y;
 
+	auto [secX, secY] {getSectorPos(user.x, user.y)};
+
 	clients[userId].mtx.lock();
-	std::unordered_set<int> oldViewList{};
-	oldViewList.swap(clients[userId].viewList);
+	std::unordered_set<int> oldViewList{ clients[userId].viewList };
 	clients[userId].mtx.unlock();
 
-	for (auto& client : clients) {
-		if (client.status == EStatus::E_ACTIVE) {
-			if (oldViewList.count(client.id)) {
-				// 뷰 리스트에 있고 시야에도 보임
-				if (isInArea(userId, client.id)) 
-					sendMovePacket(client.id, userId);
-				else {
-					// 뷰 리스트에 있는데, 시야에 보이질 않음
-					client.mtx.lock();
-					if (client.viewList.count(userId)) {
-						client.viewList.erase(userId);
-						sendLeavePacket(client.id, userId);
-					}
-					client.mtx.unlock();
-					oldViewList.erase(client.id);
-					sendLeavePacket(userId, client.id);
-				}
-			}
-			else {
-				if (isInArea(userId, client.id)) {
-					// 뷰 리스트에 없는데, 시야에 보임
-					client.mtx.lock();
-					if (!client.viewList.count(userId)) {
-						client.viewList.emplace(userId);
-						sendEnterPacket(client.id, userId);
-					}
-					client.mtx.unlock();
-					oldViewList.emplace(client.id);
-					sendEnterPacket(userId, client.id);
-				}
-			}
-		}
+	for (int i = -1; i < 2; ++i)
+		for (int j = -1; j < 2; ++j)
+			searchSector(userId, user.curSectX + i, user.curSectY + j, oldViewList);
+
+	if (user.curSectX != secX || user.curSectY != secY) {
+
+		clientsSectorMtx[user.curSectX][user.curSectY].lock();
+		clientsSector[user.curSectX][user.curSectY].erase(user.id);
+		clientsSectorMtx[user.curSectX][user.curSectY].unlock();
+
+		clientsSectorMtx[secX][secY].lock();
+		clientsSector[secX][secY].emplace(user.id);
+		clientsSectorMtx[secX][secY].unlock();
+
+		user.curSectX = secX;
+		user.curSectY = secY;
 	}
 
 	clients[userId].mtx.lock();
@@ -207,54 +330,70 @@ void clientMove(int userId, int direction) {
 }
 
 void enterGame(int userId, char name[]) {
-	clients[userId].mtx.lock();
-	strcpy_s(clients[userId].name, name);
-	clients[userId].name[MAX_ID_LEN] = '\0';
+	Client& user{ clients[userId] };
+	user.mtx.lock();
+	strcpy_s(user.name, name);
+	user.name[MAX_ID_LEN] = '\0';
+	std::unordered_set<int> oldViewList{};
+	user.mtx.unlock();
+
 	sendLoginPacket(userId);
-	
-	for (int i = 0; i < MAX_USER_SIZE; ++i) {
-		if (userId == i || !isInArea(userId, i))
-			continue;
-		// 처음 접속했을 때 viewList에 넣어주어야 하는가?
-		// 어짜피 move할때 새로 싹 다 넣어줌, enterPacket 보내면 적어도 유저들이 보이긴 함
-		// move할때로 미루자!
-		clients[i].mtx.lock();
-		if (clients[i].status == EStatus::E_ACTIVE) {
-			sendEnterPacket(userId, i);
-			sendEnterPacket(i, userId);
-		}
-		clients[i].mtx.unlock();
-	}
-	clients[userId].status = EStatus::E_ACTIVE;
-	clients[userId].mtx.unlock();
+	user.status = EStatus::E_ACTIVE;
+
+	searchSector(userId, user.curSectX, user.curSectY, oldViewList);
+	searchSector(userId, user.curSectX - 1, user.curSectY, oldViewList);
+	searchSector(userId, user.curSectX + 1, user.curSectY, oldViewList);
+	searchSector(userId, user.curSectX, user.curSectY - 1, oldViewList);
+	searchSector(userId, user.curSectX, user.curSectY + 1, oldViewList);
 }
 
 void clientInit() {
-	overlapCluster.reserve(MAX_USER_SIZE);
+
+	for (auto& it : npcSector) {
+		for (auto& idCluster : it)
+			idCluster.reserve(SECTOR_SIZE * SECTOR_SIZE * 2);
+	}
+
+	for (auto& it : clientsSector) {
+		for (auto& idCluster : it)
+			idCluster.reserve(SECTOR_SIZE * 2);
+	}
+
 	for (int i = 0; i < MAX_USER_SIZE; ++i) {
 		clients[i].id = i;
 		clients[i].viewList.reserve(100);
 		clients[i].viewList.emplace(i);
-		overlapCluster.push_back(new ExOverlapped);
+	}
+	for (int i = 0; i < MAX_NPC_SIZE; ++i) {
+		npcs[i].x = rand() % WORLD_WIDTH;
+		npcs[i].y = rand() % WORLD_HEIGHT;
+		npcs[i].id = i + 10001;
+
+		auto [secX, secY] {getSectorPos(npcs[i].x, npcs[i].y)};
+		npcSector[secX][secY].emplace(npcs[i].id);
+		npcs[i].curSectX = secX;
+		npcs[i].curSectY = secY;
 	}
 }
 
 void disconnect(int userId) {
-	clients[userId].mtx.lock();
+	int secX{ clients[userId].curSectX };
+	int secY{ clients[userId].curSectY };
+	clientsSectorMtx[secX][secY].lock();
+	clientsSector[secX][secY].erase(userId);
+	clientsSectorMtx[secX][secY].unlock();
 	clients[userId].status = EStatus::E_ALLOC;
 	sendLeavePacket(userId, userId);
+
 	closesocket(clients[userId].socket);
 	for (auto& client : clients) {
 		if (userId == client.id)
 			continue;
 
-		client.mtx.lock();
 		if (client.status == EStatus::E_ACTIVE)
 			sendLeavePacket(client.id, userId);
-		client.mtx.unlock();
 	}
 	clients[userId].status = EStatus::E_FREE;
-	clients[userId].mtx.unlock();
 }
 
 void processPacket(int userId, char* buf) {
@@ -279,7 +418,7 @@ void processPacket(int userId, char* buf) {
 void recvPacketConstruct(int userId, int ioByte) {
 	Client& user{ clients[userId] };
 	ExOverlapped& recvOver{ user.recvOverlapped };
-	
+
 	int restByte{ ioByte };
 	char* currentBuffer{ recvOver.ioBuffer };
 	int packetSize{ 0 };
@@ -304,6 +443,28 @@ void recvPacketConstruct(int userId, int ioByte) {
 			restByte = 0;
 			currentBuffer += restByte;
 		}
+	}
+}
+
+void timerThread() {
+	while (1) {
+		EventType tmp{};
+		if (eventQueue.try_pop(tmp)) {
+			auto curTime{ std::chrono::high_resolution_clock::now() };
+
+			if (std::chrono::duration<float, std::milli>
+				(curTime - tmp.eventTime).count() > 1000.0f) {
+				ExOverlapped* exOver{ new ExOverlapped{} };
+				exOver->operation = EOperation::E_NPCMOVE;
+				PostQueuedCompletionStatus(iocpHandle, 1, tmp.currentId, &exOver->overlapped);
+			}
+			else {
+				eventQueue.push(std::move(tmp));
+				Sleep(1);
+			}
+		}
+		else
+			Sleep(1);
 	}
 }
 
@@ -337,15 +498,12 @@ void workerThread() {
 			if (ioByte == 0)
 				disconnect(userId);
 
-			getQueueMtx.lock();
-			overlapCluster.push_back(exOver);
-			getQueueMtx.unlock();
-
+			delete exOver;
 			break;
+
 		case EOperation::E_ACCEPT: {
 			int userId{ -1 };
 			for (int i = 0; i < MAX_USER_SIZE; ++i) {
-				std::lock_guard<std::mutex> lock{ clients[i].mtx };
 				if (clients[i].status == EStatus::E_FREE) {
 					userId = i;
 					clients[i].status = EStatus::E_ALLOC;
@@ -367,6 +525,14 @@ void workerThread() {
 				targetClient.x = rand() % WORLD_WIDTH;
 				targetClient.y = rand() % WORLD_HEIGHT;
 
+				auto [secX, secY] {getSectorPos(targetClient.x, targetClient.y)};
+
+				clientsSectorMtx[secX][secY].lock();
+				clientsSector[secX][secY].emplace(userId);
+				clientsSectorMtx[secX][secY].unlock();
+				targetClient.curSectX = secX;
+				targetClient.curSectY = secY;
+
 				DWORD flags{ 0 };
 
 				WSARecv(clientSock, &targetClient.recvOverlapped.wsabuf, 1, NULL,
@@ -377,8 +543,46 @@ void workerThread() {
 			ZeroMemory(&exOver->overlapped, sizeof(exOver->overlapped));
 			AcceptEx(listenSock, clientSock, exOver->ioBuffer, NULL, sizeof(sockaddr_in) + 16, sizeof(sockaddr_in) + 16,
 				NULL, &exOver->overlapped);
+		}
+								 break;
+
+		case EOperation::E_NPCMOVE: {
+			key = key - 10001;
+			const auto [x, y] {findPath(npcs[key])};
+			Npc& npc{ npcs[key] };
+
+			npc.x = x;
+			npc.y = y;
+
+			auto [secX, secY] {getSectorPos(x, y)};
+			bool bIsArea{};
+
+			for (int i = -1; i < 2; ++i)
+				for (int j = -1; j < 2; ++j)
+					bIsArea |= searchSectorNpc(key, npc.curSectX + i, npc.curSectY + j);
+
+			if (npc.curSectX != secX || npc.curSectY != secY) {
+				npcSectorMtx[npc.curSectX][npc.curSectY].lock();
+				npcSector[npc.curSectX][npc.curSectY].erase(npc.id);
+				npcSectorMtx[npc.curSectX][npc.curSectY].unlock();
+
+				npcSectorMtx[secX][secY].lock();
+				npcSector[secX][secY].emplace(npc.id);
+				npcSectorMtx[secX][secY].unlock();
+
+
+				npc.curSectX = secX;
+				npc.curSectY = secY;
 			}
-		break;
+
+			delete exOver;
+
+			if (bIsArea)
+				eventQueue.push(EventType{ static_cast<int>(key + 10001), userId, std::chrono::high_resolution_clock::now() });
+			else 
+				npcs[key].isActive = false;
+			break;
+		}
 		}
 	}
 }
@@ -411,11 +615,10 @@ int main() {
 	AcceptEx(listenSock, clientSock, acceptOver.ioBuffer, NULL, sizeof(sockaddr_in) + 16, sizeof(sockaddr_in) + 16,
 		NULL, &acceptOver.overlapped);
 
-	
-
 	std::vector<std::thread> workers{};
 	for (int i = 0; i < 4; ++i)
 		workers.emplace_back(workerThread);
+	workers.emplace_back(timerThread);
 	for (auto& th : workers)
 		th.join();
 }

@@ -11,8 +11,8 @@ using namespace chrono;
 
 sf::TcpSocket g_socket;
 
-constexpr auto SCREEN_WIDTH = 16;
-constexpr auto SCREEN_HEIGHT = 16;
+constexpr auto SCREEN_WIDTH = 20;
+constexpr auto SCREEN_HEIGHT = 20;
 
 constexpr auto TILE_WIDTH = 65;
 constexpr auto WINDOW_WIDTH = TILE_WIDTH * SCREEN_WIDTH / 2 + 10;   // size of window
@@ -160,7 +160,7 @@ void ProcessPacket(char* ptr)
 		}
 		else {
 			if (id < NPC_ID_START)
-				npcs[id] = OBJECT{ *pieces, 64, 0, 64, 64 };
+				npcs[id] = OBJECT{ *pieces, 0, 0, 64, 64 };
 			else
 				npcs[id] = OBJECT{ *pieces, 0, 0, 64, 64 };
 			strcpy_s(npcs[id].name, my_packet->name);
