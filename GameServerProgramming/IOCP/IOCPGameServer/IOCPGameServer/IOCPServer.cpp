@@ -6,11 +6,11 @@
 #include <vector>
 #include <array>
 #include <concurrent_priority_queue.h>
+#include "IOCPServer.h"
 
 #pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "mswsock.lib")
-
-#include "IOCPServer.h"
+#pragma comment(lib, "lua53.lib")
 
 Client clients[MAX_USER_SIZE]{};
 HANDLE iocpHandle{};
@@ -135,6 +135,16 @@ void sendEnterPacketNpc(int userId, int npcId) {
 	sendPacket(userId, &packet);
 }
 
+void sendChatPacket(int userId, int chatId, const char* message) {
+	sc_packet_chat packet{};
+	packet.id = chatId;
+	packet.size = sizeof(packet);
+	packet.type = S2C_CHAT;
+	strcpy_s(packet.message, message);
+
+	sendPacket(userId, &packet);
+}
+
 void sendLeavePacket(int userId, int targetId) {
 	sc_packet_leave packet{};
 	packet.id = targetId;
@@ -212,8 +222,10 @@ void searchSector(int userId, int secPosX, int secPosY, std::unordered_set<int>&
 	for (auto idCluster : v) {
 		int ClusterIdx{ idCluster - 10001 };
 		if (isInArea(user.x, user.y, npcs[ClusterIdx].x, npcs[ClusterIdx].y)) {
-			if (!npcs[ClusterIdx].isActive) {
+			if (!npcs[ClusterIdx].isActive && user.x == npcs[ClusterIdx].x &&
+				user.y == npcs[ClusterIdx].y) {
 				npcs[ClusterIdx].isActive = true;
+				npcs[ClusterIdx].moveCount = 3;
 				eventQueue.push(EventType{ idCluster, userId, std::chrono::high_resolution_clock::now() });
 			}
 			npcs[ClusterIdx].mtx.lock();
@@ -224,6 +236,11 @@ void searchSector(int userId, int secPosX, int secPosY, std::unordered_set<int>&
 			}
 			else
 				npcs[ClusterIdx].mtx.unlock();
+
+			ExOverlapped* exOver{ new ExOverlapped{} };
+			exOver->operation = EOperation::E_PLAYERMOVE;
+			exOver->playerId = userId;
+			PostQueuedCompletionStatus(iocpHandle, 1, idCluster, &exOver->overlapped);
 		}
 		else {
 			npcs[ClusterIdx].mtx.lock();
@@ -347,6 +364,44 @@ void enterGame(int userId, char name[]) {
 	searchSector(userId, user.curSectX, user.curSectY + 1, oldViewList);
 }
 
+int API_send_message(lua_State* L) {
+	int playerId{ static_cast<int>(lua_tointeger(L, -3)) };
+	int objId{ static_cast<int>(lua_tointeger(L, -2)) };
+	char* message{ (char*)lua_tostring(L, -1)};
+
+	lua_pop(L, 3);
+	sendChatPacket(playerId, objId + 10001, message);
+	return 0;
+}
+
+int API_get_x(lua_State* L) {
+	int obj_id = (int)lua_tointeger(L, -1);
+	int x{ clients[obj_id].x };
+	lua_pushnumber(L, x);
+	return 1;
+}
+
+int API_get_y(lua_State* L) {
+	int obj_id = (int)lua_tointeger(L, -1);
+	int y{ clients[obj_id].y };
+	lua_pushnumber(L, y);
+	return 1;
+}
+
+int API_get_x_NPC(lua_State* L) {
+	int obj_id = (int)lua_tointeger(L, -1);
+	int x{ npcs[obj_id].x };
+	lua_pushnumber(L, x);
+	return 1;
+}
+
+int API_get_y_NPC(lua_State* L) {
+	int obj_id = (int)lua_tointeger(L, -1);
+	int y{ npcs[obj_id].y };
+	lua_pushnumber(L, y);
+	return 1;
+}
+
 void clientInit() {
 
 	for (auto& it : npcSector) {
@@ -373,7 +428,24 @@ void clientInit() {
 		npcSector[secX][secY].emplace(npcs[i].id);
 		npcs[i].curSectX = secX;
 		npcs[i].curSectY = secY;
+		npcs[i].moveCount = 3;
+		lua_State* L = npcs[i].L = luaL_newstate();
+		luaL_openlibs(L);
+		luaL_loadfile(L, "NPC.LUA");
+		lua_pcall(L, 0, 0, 0);
+		lua_getglobal(L, "setId");
+		lua_pushnumber(L, i);
+		lua_pcall(L, 1, 0, 0);
+		lua_pop(L, 1);
+
+		lua_register(L, "API_send_message", API_send_message);
+		lua_register(L, "API_get_x", API_get_x);
+		lua_register(L, "API_get_y", API_get_y);
+		lua_register(L, "API_get_x_NPC", API_get_x_NPC);
+		lua_register(L, "API_get_y_NPC", API_get_y_NPC);
 	}
+
+	std::cout << "end Init" << std::endl;
 }
 
 void disconnect(int userId) {
@@ -456,6 +528,7 @@ void timerThread() {
 				(curTime - tmp.eventTime).count() > 1000.0f) {
 				ExOverlapped* exOver{ new ExOverlapped{} };
 				exOver->operation = EOperation::E_NPCMOVE;
+				exOver->playerId = tmp.targetId;
 				PostQueuedCompletionStatus(iocpHandle, 1, tmp.currentId, &exOver->overlapped);
 			}
 			else {
@@ -500,7 +573,6 @@ void workerThread() {
 
 			delete exOver;
 			break;
-
 		case EOperation::E_ACCEPT: {
 			int userId{ -1 };
 			for (int i = 0; i < MAX_USER_SIZE; ++i) {
@@ -543,9 +615,9 @@ void workerThread() {
 			ZeroMemory(&exOver->overlapped, sizeof(exOver->overlapped));
 			AcceptEx(listenSock, clientSock, exOver->ioBuffer, NULL, sizeof(sockaddr_in) + 16, sizeof(sockaddr_in) + 16,
 				NULL, &exOver->overlapped);
+			break;
 		}
-								 break;
-
+		
 		case EOperation::E_NPCMOVE: {
 			key = key - 10001;
 			const auto [x, y] {findPath(npcs[key])};
@@ -555,11 +627,10 @@ void workerThread() {
 			npc.y = y;
 
 			auto [secX, secY] {getSectorPos(x, y)};
-			bool bIsArea{};
 
 			for (int i = -1; i < 2; ++i)
 				for (int j = -1; j < 2; ++j)
-					bIsArea |= searchSectorNpc(key, npc.curSectX + i, npc.curSectY + j);
+					searchSectorNpc(key, npc.curSectX + i, npc.curSectY + j);
 
 			if (npc.curSectX != secX || npc.curSectY != secY) {
 				npcSectorMtx[npc.curSectX][npc.curSectY].lock();
@@ -575,12 +646,32 @@ void workerThread() {
 				npc.curSectY = secY;
 			}
 
-			delete exOver;
+			if (npcs[key].moveCount > 1) {
+				--npcs[key].moveCount;
+				eventQueue.push(EventType{ static_cast<int>(key + 10001), exOver->playerId, std::chrono::high_resolution_clock::now() });
 
-			if (bIsArea)
-				eventQueue.push(EventType{ static_cast<int>(key + 10001), userId, std::chrono::high_resolution_clock::now() });
-			else 
+			}
+			else {
 				npcs[key].isActive = false;
+				sendChatPacket(exOver->playerId, key + 10001, "BYE");
+			}
+			delete exOver;
+			break;
+		}
+		
+		case EOperation::E_PLAYERMOVE: {
+			npcs[key-10001].luaMtx.lock();
+			lua_State*& L{npcs[key - 10001].L};
+			lua_getglobal(L, "eventPlayerMove");
+			lua_pushnumber(L, exOver->playerId);
+
+			if (int error{ lua_pcall(L, 1, 0, 0) }; error) {
+				std::cout << lua_tostring(L, -1);
+				lua_pop(L, 1);
+			}
+
+			npcs[key - 10001].luaMtx.unlock();
+			delete exOver;
 			break;
 		}
 		}

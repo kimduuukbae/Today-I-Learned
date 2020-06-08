@@ -9,6 +9,13 @@
 
 #include "protocol.h"
 
+extern "C" {
+#include "lua.h"
+#include "lualib.h"
+#include "lauxlib.h"
+}
+
+
 constexpr int MAX_PACKET_SIZE{ 255 };
 constexpr int MAX_BUFFER_SIZE{ 1024 };
 constexpr int MAX_USER_SIZE{ 10000 };
@@ -22,7 +29,8 @@ enum class EOperation : int {
 	E_RECV,
 	E_SEND,
 	E_ACCEPT,
-	E_NPCMOVE
+	E_NPCMOVE,
+	E_PLAYERMOVE
 };
 
 enum class EStatus : int {
@@ -38,6 +46,7 @@ struct ExOverlapped {
 	union {
 		WSABUF wsabuf;
 		SOCKET clientSock;
+		int	   playerId;
 	};
 };
 
@@ -75,4 +84,7 @@ struct Npc {
 	std::mutex mtx{};
 	std::unordered_set<int> viewList{};
 	std::atomic<bool> isActive{};
+	lua_State* L{};
+	std::mutex luaMtx{};
+	std::atomic<int> moveCount{};
 };

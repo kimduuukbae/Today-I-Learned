@@ -1,7 +1,7 @@
 #pragma once
 
 constexpr int MAX_ID_LEN = 50;
-constexpr int MAX_STR_LEN = 255;
+constexpr int MAX_STR_LEN = 80;
 
 constexpr int WORLD_WIDTH{ 800 };
 constexpr int WORLD_HEIGHT{ 800 };
@@ -15,6 +15,7 @@ constexpr int WORLD_HEIGHT{ 800 };
 #define S2C_MOVE			2
 #define S2C_ENTER			3
 #define S2C_LEAVE			4
+#define S2C_CHAT			5
 
 #pragma pack(push ,1)
 
@@ -58,7 +59,7 @@ struct sc_packet_chat {
 	char size;
 	char type;
 	int	 id;
-	char chat[100];
+	char message[MAX_STR_LEN];
 };
 
 struct cs_packet_login {

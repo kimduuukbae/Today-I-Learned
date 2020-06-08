@@ -83,7 +83,7 @@ public:
 		m_name.setPosition(rx - 10, ry - 10);
 		g_window->draw(m_name);
 		if (high_resolution_clock::now() < m_time_out) {
-			m_text.setPosition(rx - 10, ry - 10);
+			m_text.setPosition(rx - 10, ry + 15);
 			g_window->draw(m_text);
 		}
 	}
@@ -197,6 +197,13 @@ void ProcessPacket(char* ptr)
 			if (0 != npcs.count(other_id))
 				npcs[other_id].hide();
 		}
+	}
+	break;
+	case S2C_CHAT: {
+		sc_packet_chat* my_packet = reinterpret_cast<sc_packet_chat*>(ptr);
+		int o_id = my_packet->id;
+		if (npcs.count(o_id)) 
+			npcs[o_id].add_chat(my_packet->message);
 	}
 	break;
 	default:
