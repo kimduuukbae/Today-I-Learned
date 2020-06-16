@@ -19,7 +19,7 @@ extern "C" {
 constexpr int MAX_PACKET_SIZE{ 255 };
 constexpr int MAX_BUFFER_SIZE{ 1024 };
 constexpr int MAX_USER_SIZE{ 10000 };
-constexpr int MAX_NPC_SIZE{ 200000 };
+constexpr int MAX_NPC_SIZE{ 20 };
 
 constexpr int SECTOR_SIZE{ 8 };
 constexpr int VIEW_RADIUS{ 8 };

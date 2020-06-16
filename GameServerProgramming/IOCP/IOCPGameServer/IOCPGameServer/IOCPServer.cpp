@@ -5,8 +5,10 @@
 #include <string>
 #include <vector>
 #include <array>
+#include <codecvt>
 #include <concurrent_priority_queue.h>
 #include "IOCPServer.h"
+#include "Database.h"
 
 #pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "mswsock.lib")
@@ -15,7 +17,7 @@
 Client clients[MAX_USER_SIZE]{};
 HANDLE iocpHandle{};
 SOCKET listenSock{};
-
+Database dbDevice{};
 Npc npcs[MAX_NPC_SIZE]{};
 concurrency::concurrent_priority_queue <EventType> eventQueue{};
 std::array<std::array<std::unordered_set<int>, WORLD_HEIGHT / SECTOR_SIZE>, WORLD_WIDTH / SECTOR_SIZE> npcSector{};
@@ -23,6 +25,17 @@ std::array<std::array<std::unordered_set<int>, WORLD_HEIGHT / SECTOR_SIZE>, WORL
 std::mutex clientsSectorMtx[WORLD_WIDTH / SECTOR_SIZE][WORLD_HEIGHT / SECTOR_SIZE]{};
 std::mutex npcSectorMtx[WORLD_WIDTH / SECTOR_SIZE][WORLD_HEIGHT / SECTOR_SIZE]{};
 
+std::wstring utf8_to_wstring(const std::string& str) {
+	std::wstring_convert<std::codecvt_utf8<wchar_t>> myconv;
+	return myconv.from_bytes(str);
+}
+
+void saveAll() {
+	for (int i = 0; i < MAX_USER_SIZE; ++i) {
+		if (clients[i].status == EStatus::E_ACTIVE)
+			dbDevice.setUserInfo(std::make_tuple(utf8_to_wstring(clients[i].name), clients[i].x, clients[i].y));
+	}
+}
 
 std::pair<int, int> findPath(const Npc& target) {
 	int x{ target.x }, y{ target.y };
@@ -348,20 +361,38 @@ void clientMove(int userId, int direction) {
 
 void enterGame(int userId, char name[]) {
 	Client& user{ clients[userId] };
-	user.mtx.lock();
-	strcpy_s(user.name, name);
-	user.name[MAX_ID_LEN] = '\0';
-	std::unordered_set<int> oldViewList{};
-	user.mtx.unlock();
+	
+	auto [id, x, y] {dbDevice.getUserInfo(utf8_to_wstring(name))};
+	if (id == L"ERROR") {
+		closesocket(user.socket);
+		user.status = EStatus::E_FREE;
+	}
+	else {
+		user.x = x;
+		user.y = y;
+		user.mtx.lock();
+		strcpy_s(user.name, name);
+		user.name[MAX_ID_LEN] = '\0';
+		std::unordered_set<int> oldViewList{};
+		user.mtx.unlock();
 
-	sendLoginPacket(userId);
-	user.status = EStatus::E_ACTIVE;
+		sendLoginPacket(userId);
+		user.status = EStatus::E_ACTIVE;
 
-	searchSector(userId, user.curSectX, user.curSectY, oldViewList);
-	searchSector(userId, user.curSectX - 1, user.curSectY, oldViewList);
-	searchSector(userId, user.curSectX + 1, user.curSectY, oldViewList);
-	searchSector(userId, user.curSectX, user.curSectY - 1, oldViewList);
-	searchSector(userId, user.curSectX, user.curSectY + 1, oldViewList);
+		auto [secX, secY] {getSectorPos(user.x, user.y)};
+
+		clientsSectorMtx[secX][secY].lock();
+		clientsSector[secX][secY].emplace(userId);
+		clientsSectorMtx[secX][secY].unlock();
+		user.curSectX = secX;
+		user.curSectY = secY;
+
+		searchSector(userId, user.curSectX, user.curSectY, oldViewList);
+		searchSector(userId, user.curSectX - 1, user.curSectY, oldViewList);
+		searchSector(userId, user.curSectX + 1, user.curSectY, oldViewList);
+		searchSector(userId, user.curSectX, user.curSectY - 1, oldViewList);
+		searchSector(userId, user.curSectX, user.curSectY + 1, oldViewList);
+	}
 }
 
 int API_send_message(lua_State* L) {
@@ -451,13 +482,16 @@ void clientInit() {
 void disconnect(int userId) {
 	int secX{ clients[userId].curSectX };
 	int secY{ clients[userId].curSectY };
+	Client& user{ clients[userId] };
+
 	clientsSectorMtx[secX][secY].lock();
 	clientsSector[secX][secY].erase(userId);
 	clientsSectorMtx[secX][secY].unlock();
-	clients[userId].status = EStatus::E_ALLOC;
+	user.status = EStatus::E_ALLOC;
 	sendLeavePacket(userId, userId);
+	dbDevice.setUserInfo(std::make_tuple(utf8_to_wstring(user.name), user.x, user.y));
 
-	closesocket(clients[userId].socket);
+	closesocket(user.socket);
 	for (auto& client : clients) {
 		if (userId == client.id)
 			continue;
@@ -465,7 +499,7 @@ void disconnect(int userId) {
 		if (client.status == EStatus::E_ACTIVE)
 			sendLeavePacket(client.id, userId);
 	}
-	clients[userId].status = EStatus::E_FREE;
+	user.status = EStatus::E_FREE;
 }
 
 void processPacket(int userId, char* buf) {
@@ -574,6 +608,7 @@ void workerThread() {
 			delete exOver;
 			break;
 		case EOperation::E_ACCEPT: {
+			SOCKET clientSock = exOver->clientSock;
 			int userId{ -1 };
 			for (int i = 0; i < MAX_USER_SIZE; ++i) {
 				if (clients[i].status == EStatus::E_FREE) {
@@ -582,7 +617,6 @@ void workerThread() {
 					break;
 				}
 			}
-			SOCKET clientSock = exOver->clientSock;
 			if (userId == -1)
 				closesocket(exOver->clientSock);
 			else {
@@ -596,14 +630,6 @@ void workerThread() {
 				targetClient.socket = clientSock;
 				targetClient.x = rand() % WORLD_WIDTH;
 				targetClient.y = rand() % WORLD_HEIGHT;
-
-				auto [secX, secY] {getSectorPos(targetClient.x, targetClient.y)};
-
-				clientsSectorMtx[secX][secY].lock();
-				clientsSector[secX][secY].emplace(userId);
-				clientsSectorMtx[secX][secY].unlock();
-				targetClient.curSectX = secX;
-				targetClient.curSectY = secY;
 
 				DWORD flags{ 0 };
 
@@ -707,9 +733,14 @@ int main() {
 		NULL, &acceptOver.overlapped);
 
 	std::vector<std::thread> workers{};
+	dbDevice.initalize(L"2020GS_2014180025");
+	atexit(saveAll);
+
 	for (int i = 0; i < 4; ++i)
 		workers.emplace_back(workerThread);
 	workers.emplace_back(timerThread);
 	for (auto& th : workers)
 		th.join();
+
+
 }

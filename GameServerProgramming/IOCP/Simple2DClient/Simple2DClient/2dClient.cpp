@@ -317,11 +317,15 @@ int main()
 
 	client_initialize();
 
+	wcout << L"아이디를 입력해주세요:" << endl;
+	string id{};
+	cin >> id;
 	cs_packet_login l_packet;
 	l_packet.size = sizeof(l_packet);
 	l_packet.type = C2S_LOGIN;
-	int t_id = GetCurrentProcessId();
-	sprintf_s(l_packet.name, "P%03d", t_id % 1000);
+	//int t_id = GetCurrentProcessId();
+	//sprintf_s(l_packet.name, "P%03d", t_id % 1000);
+	strcpy_s(l_packet.name, id.c_str());
 	strcpy_s(avatar.name, l_packet.name);
 	avatar.set_name(l_packet.name);
 	send_packet(&l_packet);

@@ -1,7 +1,8 @@
 #pragma once
+#include "Timer.h"
+#include "Scene.h"
 
-class CGameFramework
-{
+class CGameFramework{
 private:
 	HINSTANCE m_hInstance;
 	HWND m_hWnd;
@@ -9,34 +10,34 @@ private:
 	int m_nWndClientWidth;
 	int m_nWndClientHeight;
 
-	IDXGIFactory4* m_pdxgiFactory;
-	IDXGISwapChain3* m_pdxgiSwapChain;
-	ID3D12Device* m_pd3dDevice;
+	ComPtr<IDXGIFactory4> m_pdxgiFactory;
+	ComPtr<IDXGISwapChain3> m_pdxgiSwapChain;
+	ComPtr<ID3D12Device> m_pd3dDevice;
 
-	bool m_bMsaa4xEnable = { false };
-	UINT m_nMsaa4xQualityLevels = { 0 };
-	static const UINT m_nSwapChainBuffers = { 2 };
+	bool m_bMsaa4xEnable { false };
+	UINT m_nMsaa4xQualityLevels { 0 };
+	static const UINT m_nSwapChainBuffers { 2 };
 	UINT m_nSwapChainBufferIndex;
 
-	ID3D12Resource* m_ppd3dRenderTargetBuffers[m_nSwapChainBuffers];
-	ID3D12DescriptorHeap* m_pd3dRtvDescriptorHeap;
+	ComPtr<ID3D12Resource> m_ppd3dRenderTargetBuffers[m_nSwapChainBuffers];
+	ComPtr<ID3D12DescriptorHeap> m_pd3dRtvDescriptorHeap;
 	UINT m_nRtvDescriptorIncrementSize;
 	// 렌더타겟, 서술자힙 포인터. 렌더 타겟 서술자 크기
 
-	ID3D12Resource* m_pd3dDepthStencilBuffer;
-	ID3D12DescriptorHeap* m_pd3dDsvDescriptorHeap;
+	ComPtr<ID3D12Resource> m_pd3dDepthStencilBuffer;
+	ComPtr<ID3D12DescriptorHeap> m_pd3dDsvDescriptorHeap;
 	UINT m_nDsvDescriptorIncrementSize;
 	// 깊이 스텐실 버퍼, 서술자 힙 포인터. 깊이 스텐실 서술자 크기
 
-	ID3D12CommandQueue* m_pd3dCommandQueue;
-	ID3D12CommandAllocator* m_pd3dCommandAllocator;
-	ID3D12GraphicsCommandList* m_pd3dCommandList;
+	ComPtr<ID3D12CommandQueue> m_pd3dCommandQueue;
+	ComPtr<ID3D12CommandAllocator> m_pd3dCommandAllocator;
+	ComPtr<ID3D12GraphicsCommandList> m_pd3dCommandList;
 	//명령 큐, 명령 할당자, 명령 리스트 포인터
 
-	ID3D12PipelineState* m_pd3dPipelineState;
+	ComPtr<ID3D12PipelineState> m_pd3dPipelineState;
 	// 그래픽 파이프라인 상태 객체 포인터
 
-	ID3D12Fence* m_pd3dFence;
+	ComPtr<ID3D12Fence> m_pd3dFence;
 	UINT64 m_nFenceValue;
 	HANDLE m_hFenceEvent;
 	// 펜스 포인터, 펜스 값, 이벤트 핸들
@@ -46,6 +47,7 @@ private:
 	//뷰포트와 시저 사각형
 
 	CScene* m_pScene;
+
 public:
 	CGameFramework();
 	~CGameFramework();
@@ -81,6 +83,12 @@ public:
 
 	//윈도우의 메세지 처리 함수
 
-	void MoveToNextFrame();
+	CGameTimer gameTimer{};
+	_TCHAR pszFrameRate[50];
+
+	// 게임 타이머
+
+	void changeSwapChainState();
+	//전체화면모드
 };
 
