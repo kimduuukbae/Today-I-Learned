@@ -16,9 +16,11 @@ UE4VS/*
 *.o
 *.obj
 *.ilk
+*.cs
 *.pdb
 *.log
 *.res
+*.config
 *.ico
 *.idb
 *.rc

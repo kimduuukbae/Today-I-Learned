@@ -1,5 +1,5 @@
 #include "stdafx.h"
-#include "CGameFramework.h"
+#include "GameFramework.h"
 
 CGameFramework::CGameFramework() : 
 	m_nWndClientWidth{ FRAME_BUFFER_WIDTH },
