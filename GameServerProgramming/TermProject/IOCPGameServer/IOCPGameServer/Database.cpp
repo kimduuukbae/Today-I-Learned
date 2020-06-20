@@ -26,7 +26,7 @@ UserInfo Database::getUserInfo(const std::wstring_view& userId){
 	strings.append(userId.data());
 
 	if (auto code{ SQLExecDirect(hstmt, (SQLWCHAR*)strings.data(), SQL_NTS) }; code != SQL_SUCCESS && code != SQL_SUCCESS_WITH_INFO)
-		return { L"ERROR", 0, 0, 0, 0, 0 };
+		return { L"E", 0, 0, 0, 0, 0 };
 
 	SQLWCHAR id[20]{};
 	SQLINTEGER userX{}, userY{}, userHp{}, userLevel{}, userExp{};
@@ -44,9 +44,25 @@ UserInfo Database::getUserInfo(const std::wstring_view& userId){
 	SQLFreeHandle(SQL_HANDLE_STMT, hstmt);
 
 	if (retcode == SQL_NO_DATA)
-		return { L"ERROR", 0, 0, 0, 0, 0 };
+		return { L"E", 0, 0, 0, 0, 0 };
 
 	return { id, userX, userY, userLevel, userExp, userHp};
+}
+
+bool Database::addUserInfo(const std::wstring_view& userId){
+	retcode = SQLAllocHandle(SQL_HANDLE_STMT, hdbc, &hstmt);
+	std::wstring strings{};
+	strings.reserve(100);
+	strings.append(L"EXEC INSERT_NEWINFO "s);
+	strings.append(userId);
+
+	if (auto code{ SQLExecDirect(hstmt, (SQLWCHAR*)strings.data(), SQL_NTS) }; code != SQL_SUCCESS && code != SQL_SUCCESS_WITH_INFO)
+		return false;
+
+	SQLCancel(hstmt);
+	SQLFreeHandle(SQL_HANDLE_STMT, hstmt);
+
+	return !(retcode == SQL_NO_DATA);
 }
 
 bool Database::setUserInfo(const UserInfo& info){

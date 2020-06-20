@@ -7,6 +7,8 @@
 #include <array>
 #include <codecvt>
 #include <concurrent_priority_queue.h>
+#include <iterator>
+#include <fstream>
 #include "IOCPServer.h"
 #include "Database.h"
 
@@ -24,7 +26,8 @@ std::array<std::array<std::unordered_set<int>, WORLD_HEIGHT / SECTOR_SIZE>, WORL
 std::array<std::array<std::unordered_set<int>, WORLD_HEIGHT / SECTOR_SIZE>, WORLD_WIDTH / SECTOR_SIZE> clientsSector{};
 std::mutex clientsSectorMtx[WORLD_WIDTH / SECTOR_SIZE][WORLD_HEIGHT / SECTOR_SIZE]{};
 std::mutex npcSectorMtx[WORLD_WIDTH / SECTOR_SIZE][WORLD_HEIGHT / SECTOR_SIZE]{};
-
+std::unordered_set<std::string_view> connectedPlayer{};
+std::array<int, 16> expList{};
 std::wstring utf8_to_wstring(const std::string_view& str) {
 	std::wstring_convert<std::codecvt_utf8<wchar_t>> myconv;
 	return myconv.from_bytes(str.data());
@@ -89,6 +92,14 @@ void sendLoginPacket(int userId) {
 	packet.type = S2C_LOGIN_OK;
 	packet.x = clients[userId].x;
 	packet.y = clients[userId].y;
+
+	sendPacket(userId, &packet);
+}
+
+void sendLoginFailPacket(int userId) {
+	sc_packet_login_fail packet{};
+	packet.size = sizeof(packet);
+	packet.type = S2C_LOGIN_FAIL;
 
 	sendPacket(userId, &packet);
 }
@@ -169,6 +180,15 @@ void sendLeavePacket(int userId, int targetId) {
 	sendPacket(userId, &packet);
 }
 
+void sendChangeInfoPacket(int userId) {
+	sc_packet_stat_change packet{};
+	packet.size = sizeof(packet);
+	packet.type = S2C_STAT_CHANGE;
+	packet.hp = clients[userId].hp;
+	packet.exp = clients[userId].exp;
+	packet.level = clients[userId].level;
+	sendPacket(userId, &packet);
+}
 bool searchSectorNpc(int npcId, int secPosX, int secPosY) {
 
 	if (secPosX < 0 || secPosX >(WORLD_WIDTH / SECTOR_SIZE) - 1 ||
@@ -240,8 +260,8 @@ void searchSector(int userId, int secPosX, int secPosY, std::unordered_set<int>&
 			if (!npcs[ClusterIdx].isActive && user.x == npcs[ClusterIdx].x &&
 				user.y == npcs[ClusterIdx].y) {
 				npcs[ClusterIdx].isActive = true;
-				npcs[ClusterIdx].moveCount = 3;
-				eventQueue.push(EventType{ idCluster, userId, std::chrono::high_resolution_clock::now() });
+				if(npcs[ClusterIdx].moveType == EMonsterMoveType::E_MOVE)
+					eventQueue.push(EventType{ idCluster, userId, std::chrono::high_resolution_clock::now() });
 			}
 			npcs[ClusterIdx].mtx.lock();
 			if (!npcs[ClusterIdx].viewList.count(userId)) {
@@ -363,18 +383,28 @@ void clientMove(int userId, int direction) {
 
 void enterGame(int userId, char name[]) {
 	Client& user{ clients[userId] };
-	auto info {dbDevice.getUserInfo(utf8_to_wstring(name))};
-	if (info.name == L"ERROR") {
+	if (connectedPlayer.count(name)) {
+		sendLoginFailPacket(user.id);
 		closesocket(user.socket);
 		user.status = EStatus::E_FREE;
 	}
 	else {
-		user.x = info.x;
-		user.y = info.y;
-		user.level = info.level;
-		user.hp = info.hp;
-		user.exp = info.exp;
-
+		auto info{ dbDevice.getUserInfo(utf8_to_wstring(name)) };
+		if (info.name == L"E") {
+			dbDevice.addUserInfo(utf8_to_wstring(name));
+			user.x = 0;
+			user.y = 0;
+			user.level = 1;
+			user.hp = 100;
+			user.exp = 0;
+		}
+		else {
+			user.x = info.x;
+			user.y = info.y;
+			user.level = info.level;
+			user.hp = info.hp;
+			user.exp = info.exp;
+		}
 		user.mtx.lock();
 		strcpy_s(user.name, name);
 		user.name[MAX_ID_LEN] = '\0';
@@ -397,8 +427,9 @@ void enterGame(int userId, char name[]) {
 		searchSector(userId, user.curSectX + 1, user.curSectY, oldViewList);
 		searchSector(userId, user.curSectX, user.curSectY - 1, oldViewList);
 		searchSector(userId, user.curSectX, user.curSectY + 1, oldViewList);
-		
+
 		std::string s{ user.name };
+		connectedPlayer.emplace(user.name);
 		s.append(" 님 안녕하세요.");
 		sendChatPacket(userId, -64, s.c_str());
 	}
@@ -441,8 +472,20 @@ int API_get_y_NPC(lua_State* L) {
 	return 1;
 }
 
-void clientInit() {
+void initExpList() {
+	std::ifstream If{ "table/ExpTable.txt" };
+	
+	std::istream_iterator<std::string> start{If};
+	std::istream_iterator<std::string> end{};
+	
+	std::transform(start, end, expList.begin() + 1, [](const std::string& rhs) -> int {
+		return std::stoi(rhs);
+		});
+}
 
+void clientInit() {
+	initExpList();
+	connectedPlayer.reserve(10000);
 	for (auto& it : npcSector) {
 		for (auto& idCluster : it)
 			idCluster.reserve(SECTOR_SIZE * SECTOR_SIZE * 2);
@@ -469,9 +512,11 @@ void clientInit() {
 		npcSector[secX][secY].emplace(npcs[i].id);
 		npcs[i].curSectX = secX;
 		npcs[i].curSectY = secY;
-		npcs[i].moveCount = 3;
 		npcs[i].level = rand() % 10 + 1;
 		npcs[i].hp = npcs[i].level * 100;
+		npcs[i].type = static_cast<EMonsterType>(rand() % 2);
+		npcs[i].moveType = static_cast<EMonsterMoveType>(rand() % 2);
+
 		name.append("LV : ");
 		name.append(std::to_string(npcs[i].level));
 		strcpy_s(npcs[i].name, name.c_str());
@@ -570,6 +615,25 @@ void processPacket(int userId, char* buf) {
 					s.append(" 의 데미지를 입혔습니다.");
 					sendChatPacket(userId, -64, s.c_str());
 					npcs[ClusterIdx].hp -= user.level * 20;
+					if (npcs[ClusterIdx].hp <= 0) {
+						int getExp{ npcs[ClusterIdx].level * 50 };
+						npcs[ClusterIdx].hp = npcs[ClusterIdx].level * 100;
+						user.exp += getExp;
+						s.clear();
+						s.append("MONSTER를 처치하여 ");
+						s.append(std::to_string(getExp));
+						s.append(" 의 경험치를 얻었습니다.");
+						sendChatPacket(userId, -64, s.c_str());
+						if (user.exp >= expList[user.level]) {
+							user.exp -= expList[user.level];
+							user.level += 1;
+							s.clear();
+							s.append("-------------------LEVEL UP-------------------");
+							sendChatPacket(userId, -64, s.c_str());
+						}
+						sendChangeInfoPacket(user.id);
+
+					}
 				}
 			}
 			user.lastAttackTime = std::chrono::high_resolution_clock::now();
@@ -714,10 +778,10 @@ void workerThread() {
 			npc.y = y;
 
 			auto [secX, secY] {getSectorPos(x, y)};
-
+			bool isArea{ false };
 			for (int i = -1; i < 2; ++i)
 				for (int j = -1; j < 2; ++j)
-					searchSectorNpc(key, npc.curSectX + i, npc.curSectY + j);
+					isArea |= searchSectorNpc(key, npc.curSectX + i, npc.curSectY + j);
 
 			if (npc.curSectX != secX || npc.curSectY != secY) {
 				npcSectorMtx[npc.curSectX][npc.curSectY].lock();
@@ -733,15 +797,11 @@ void workerThread() {
 				npc.curSectY = secY;
 			}
 
-			if (npcs[key].moveCount > 1) {
-				--npcs[key].moveCount;
+			if (isArea) 
 				eventQueue.push(EventType{ static_cast<int>(key + NPC_ID_START + 1), exOver->playerId, std::chrono::high_resolution_clock::now() });
-
-			}
-			else {
+			else 
 				npcs[key].isActive = false;
-				//sendChatPacket(exOver->playerId, key + NPC_ID_START + 1, "BYE");
-			}
+			
 			delete exOver;
 			break;
 		}
@@ -801,6 +861,4 @@ int main() {
 	workers.emplace_back(timerThread);
 	for (auto& th : workers)
 		th.join();
-
-
 }

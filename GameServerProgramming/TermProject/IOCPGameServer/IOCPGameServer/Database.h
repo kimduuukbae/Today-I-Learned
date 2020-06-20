@@ -18,6 +18,7 @@ public:
     ~Database();
     void initalize(const std::wstring_view& dbName);
     UserInfo getUserInfo(const std::wstring_view& userId);
+    bool addUserInfo(const std::wstring_view& userId);
     bool setUserInfo(const UserInfo& info);
 private:
     void operator=(Database rhs) = delete;

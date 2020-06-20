@@ -18,8 +18,6 @@ void InfoManager::changeInfo(int exp_, int hp_, int level_) {
 	level = level_;
 	exp = exp_;
 	hp = hp_;
-	std::to_wstring(exp);
-	std::to_wstring(hp);
 
 	currentInfo.clear();
 

@@ -39,6 +39,15 @@ enum class EStatus : int {
 	E_ACTIVE
 };
 
+enum class EMonsterType : int {
+	E_PEACE,
+	E_WAR,
+};
+enum class EMonsterMoveType : int {
+	E_FIX,
+	E_MOVE
+};
+
 struct ExOverlapped {
 	WSAOVERLAPPED overlapped{};
 	EOperation operation{};
@@ -86,6 +95,9 @@ struct Npc {
 	int id{};
 	int hp{};
 	int level{};
+	
+	EMonsterType type{};
+	EMonsterMoveType moveType{};
 
 	char name[MAX_ID_LEN + 1];
 	std::mutex mtx{};
@@ -93,5 +105,4 @@ struct Npc {
 	std::atomic<bool> isActive{};
 	lua_State* L{};
 	std::mutex luaMtx{};
-	std::atomic<int> moveCount{};
 };

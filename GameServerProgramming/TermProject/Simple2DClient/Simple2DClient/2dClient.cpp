@@ -4,8 +4,6 @@
 #include "InfoManager.h"
 #pragma comment(lib, "inc/fmod_vc.lib")
 
-
-// TODO : 로그인창 추가
 using namespace std;
 using namespace chrono;
 
@@ -238,7 +236,7 @@ void ProcessPacket(char* ptr)
 		std::wstring s{};
 		
 		if (o_id == -64) {
-			s.append(L"서버 : ");
+			s.append(L"<system> : ");
 			s.append(my_packet->mess);
 			allChat.pushText(s.c_str());
 		}
@@ -255,6 +253,16 @@ void ProcessPacket(char* ptr)
 			s.append(my_packet->mess);
 			allChat.pushText(s.c_str());
 		}
+	}
+	break;
+	case S2C_STAT_CHANGE: {
+		sc_packet_stat_change* my_packet = reinterpret_cast<sc_packet_stat_change*>(ptr);
+		avartarInfo.changeInfo(my_packet->exp, my_packet->hp, my_packet->level);
+	}
+	break;
+	case S2C_LOGIN_FAIL: {
+		MessageBox(g_window->getSystemHandle(), "이미 접속중인 ID 입니다.", 0, 0);
+		g_window->close();
 	}
 	break;
 	default:
