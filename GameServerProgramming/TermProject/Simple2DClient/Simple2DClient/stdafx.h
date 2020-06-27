@@ -10,8 +10,13 @@
 #include <deque>
 
 #include <string>
+#include <array>
+#include <fstream>
 #include <codecvt>
 #include "..\..\IOCPGameServer\IOCPGameServer\protocol.h"
+
+using namespace std;
+using namespace chrono;
 
 constexpr auto SCREEN_WIDTH = 20;
 constexpr auto SCREEN_HEIGHT = 20;

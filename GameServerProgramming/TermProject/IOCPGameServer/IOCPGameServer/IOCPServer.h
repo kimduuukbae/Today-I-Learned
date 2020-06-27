@@ -24,13 +24,16 @@ constexpr int MAX_USER_SIZE{ 10000 };
 constexpr int SECTOR_SIZE{ 10 };
 constexpr int VIEW_RADIUS{ 10 };
 
+constexpr float MOVE_TIME{ 1000.0f };
+constexpr float SPAWN_TIME{ 5000.0f };
 
 enum class EOperation : int {
 	E_RECV,
 	E_SEND,
 	E_ACCEPT,
 	E_NPCMOVE,
-	E_PLAYERMOVE
+	E_PLAYERMOVE,
+	E_RESPAWNMONSTER
 };
 
 enum class EStatus : int {
@@ -40,12 +43,12 @@ enum class EStatus : int {
 };
 
 enum class EMonsterType : int {
-	E_PEACE,
-	E_WAR,
+	E_PEACE = 1,
+	E_WAR = 2,
 };
 enum class EMonsterMoveType : int {
-	E_FIX,
-	E_MOVE
+	E_FIX = 1,
+	E_MOVE = 2
 };
 
 struct ExOverlapped {
@@ -55,7 +58,7 @@ struct ExOverlapped {
 	union {
 		WSABUF wsabuf;
 		SOCKET clientSock;
-		int	   playerId;
+		int	   Id;
 	};
 };
 
@@ -77,6 +80,7 @@ struct Client {
 	int hp{};
 	int level{};
 	int exp{};
+	std::string systemString{};
 };
 
 struct EventType {
@@ -96,6 +100,9 @@ struct Npc {
 	int hp{};
 	int level{};
 	
+	int oldX{}, oldY{};
+	int oldSecX{}, oldSecY{};
+
 	EMonsterType type{};
 	EMonsterMoveType moveType{};
 
@@ -105,4 +112,6 @@ struct Npc {
 	std::atomic<bool> isActive{};
 	lua_State* L{};
 	std::mutex luaMtx{};
+
+	std::string expString{};
 };

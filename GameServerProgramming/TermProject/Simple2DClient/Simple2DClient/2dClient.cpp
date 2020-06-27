@@ -2,10 +2,8 @@
 #include "inc/fmod.hpp"
 #include "ChatManager.h"
 #include "InfoManager.h"
+#include "Object.h"
 #pragma comment(lib, "inc/fmod_vc.lib")
-
-using namespace std;
-using namespace chrono;
 
 sf::TcpSocket g_socket;
 
@@ -17,92 +15,18 @@ sf::RenderWindow* g_window;
 sf::Font g_font;
 ChatManager allChat{};
 InfoManager avartarInfo{};
-class OBJECT {
-private:
-	bool m_showing;
-	sf::Sprite m_sprite;
+std::array<std::array<int, 800>, 800> mapTile{};
 
-	char m_mess[MAX_STR_LEN];
-	high_resolution_clock::time_point m_time_out;
-	sf::Text m_text;
-	sf::Text m_name;
 
-public:
-	int m_x, m_y;
-	char name[MAX_ID_LEN];
-	OBJECT(sf::Texture& t, int x, int y, int x2, int y2) {
-		m_showing = false;
-		m_sprite.setTexture(t);
-		m_sprite.setTextureRect(sf::IntRect(x, y, x2, y2));
-		m_sprite.setScale(sf::Vector2f(1.5f, 1.5f));
-		m_time_out = high_resolution_clock::now();
-		m_text.setFillColor(sf::Color{ 0, 0, 0 });
-		m_text.setStyle(sf::Text::Bold);
-	}
-	OBJECT() {
-		m_showing = false;
-		m_time_out = high_resolution_clock::now();
-	}
-	void show()
-	{
-		m_showing = true;
-	}
-	void hide()
-	{
-		m_showing = false;
-	}
+Object avatar;
+unordered_map <int, Object> npcs;
 
-	void a_move(int x, int y) {
-		m_sprite.setPosition((float)x, (float)y);
-	}
-
-	void a_draw() {
-		g_window->draw(m_sprite);
-	}
-
-	void move(int x, int y) {
-		m_x = x;
-		m_y = y;
-	}
-	void draw() {
-		if (false == m_showing) return;
-		float rx = (m_x - g_left_x) * 65.0f;
-		float ry = (m_y - g_top_y) * 65.0f;
-		m_sprite.setPosition(rx, ry);
-		g_window->draw(m_sprite);
-		m_name.setPosition(rx - 10, ry - 10);
-		g_window->draw(m_name);
-		if (high_resolution_clock::now() < m_time_out) {
-			m_text.setPosition(rx - 10, ry - 46);
-			g_window->draw(m_text);
-		}
-	}
-	void set_name(char str[]) {
-		m_name.setFont(g_font);
-		m_name.setString(str);
-		m_name.setFillColor(sf::Color(255, 255, 0));
-		m_name.setStyle(sf::Text::Bold);
-	}
-	void add_chat(wchar_t chat[]) {
-		m_text.setFont(g_font);
-		m_text.setString(chat);
-		m_time_out = high_resolution_clock::now() + 3s;
-	}
-
-	sf::Sprite& getSprite() {
-		return m_sprite;
-	}
-};
-
-OBJECT avatar;
-unordered_map <int, OBJECT> npcs;
-
-OBJECT white_tile;
-OBJECT black_tile;
+Object white_tile;
+Object black_tile;
 
 sf::Texture* board;
 sf::Texture* character;
-sf::Texture* monster;
+sf::Texture* monster[2];
 FMOD::System* pFmod;
 FMOD::Channel* ch[2];
 FMOD::ChannelGroup* gr[2];
@@ -116,18 +40,34 @@ void client_initialize()
 	pFmod->createSound("data/attack.wav", FMOD_LOOP_OFF, nullptr, &Sound[1]);
 	board = new sf::Texture;
 	character = new sf::Texture;
-	monster = new sf::Texture;
+	monster[0] = new sf::Texture;
+	monster[1] = new sf::Texture;
 	if (false == g_font.loadFromFile("nanum.ttf")) {
 		cout << "Font Loading Error!\n";
 		while (true);
 	}
 	board->loadFromFile("data/tile.png");
 	character->loadFromFile("data/character.png");
-	monster->loadFromFile("data/monster.png");
-	white_tile = OBJECT{ *board, 5, 5, TILE_WIDTH, TILE_WIDTH };
-	black_tile = OBJECT{ *board, 69, 5, TILE_WIDTH, TILE_WIDTH };
-	avatar = OBJECT{ *character, 0, 0, 48, 48 };
+	monster[0]->loadFromFile("data/enemy1.png");
+	monster[1]->loadFromFile("data/enemy2.png");
+	white_tile = Object{ *board, 5, 5, TILE_WIDTH, TILE_WIDTH };
+	black_tile = Object{ *board, 69, 5, TILE_WIDTH, TILE_WIDTH };
+	avatar = Object{ *character, 0, 0, 59, 59 };
 	avatar.move(4, 4);
+	avatar.setFont(g_font);
+	avatar.setSize(1.8f, 1.8f);
+	avatar.setOffset(-10.0f, -20.0f);
+	//init mapTile
+	std::ifstream ifs{ "map.txt", ios::binary };
+	std::istream_iterator<char> it{ ifs };
+
+	for (int i = 0; i < WORLD_WIDTH; ++i) {
+		for (int j = 0; j < WORLD_HEIGHT; ++j) {
+			mapTile[i][j] = (*it) - 48;
+			++it;
+		}
+	}
+	ifs.close();
 }
 
 void client_finish()
@@ -166,13 +106,24 @@ void ProcessPacket(char* ptr)
 		}
 		else {
 			if (id < NPC_ID_START)
-				npcs[id] = OBJECT{ *character, 0, 0, 48, 48 };
-			else
-				npcs[id] = OBJECT{ *monster, 128, 0, 44, 48 };
+				npcs[id] = Object{ *character, 0, 0, 59, 59 };
+			else {
+				if (my_packet->o_type == 1)
+					npcs[id] = Object{ *monster[0], 0, 0, 64, 65 };
+				else if (my_packet->o_type == 2)
+					npcs[id] = Object{ *monster[1], 0, 0, 64, 65 };
+			}
+				
 			strcpy_s(npcs[id].name, my_packet->name);
 			npcs[id].set_name(my_packet->name);
 			npcs[id].move(my_packet->x, my_packet->y);
 			npcs[id].show();
+			npcs[id].setFont(g_font);
+			npcs[id].setWindow(g_window);
+			npcs[id].setWindowOffset(g_left_x, g_top_y);
+			npcs[id].setOffset(-15.0f, -25.0f);
+			npcs[id].setSize(1.8f, 1.8f);
+			npcs[id].nameOffset(20, -15);
 		}
 	}
 	break;
@@ -184,13 +135,13 @@ void ProcessPacket(char* ptr)
 			int right{ my_packet->x - avatar.m_x };
 			int up{ my_packet->y - avatar.m_y };
 			if (right == 1)
-				avatar.getSprite().setTextureRect(sf::IntRect{440, 0, 48, 48});
+				avatar.getSprite().setTextureRect(sf::IntRect{0, 118, 59, 59});
 			else if (right == -1)
-				avatar.getSprite().setTextureRect(sf::IntRect{ 120, 0, 48, 48 });
+				avatar.getSprite().setTextureRect(sf::IntRect{ 0, 59, 59, 59 });
 			else if (up == -1)
-				avatar.getSprite().setTextureRect(sf::IntRect{ 240, 0, 48, 48 });
+				avatar.getSprite().setTextureRect(sf::IntRect{0 , 177, 59, 59 });
 			else if (up == 1)
-				avatar.getSprite().setTextureRect(sf::IntRect{ 0, 0, 48, 48 });
+				avatar.getSprite().setTextureRect(sf::IntRect{ 0, 0, 59, 59 });
 
 			
 			avatar.move(my_packet->x, my_packet->y);
@@ -203,13 +154,13 @@ void ProcessPacket(char* ptr)
 				int up{ my_packet->y - npcs[other_id].m_y };
 				
 				if (right == 1)
-					npcs[other_id].getSprite().setTextureRect(sf::IntRect{ 440, 0, 44, 48 });
+					npcs[other_id].getSprite().setTextureRect(sf::IntRect{ 0, 130, 64, 65 });
 				else if (right == -1)
-					npcs[other_id].getSprite().setTextureRect(sf::IntRect{ 126, 0, 44, 48 });
+					npcs[other_id].getSprite().setTextureRect(sf::IntRect{ 0, 65, 64, 65 });
 				else if (up == -1)
-					npcs[other_id].getSprite().setTextureRect(sf::IntRect{ 246, 0, 44, 48 });
+					npcs[other_id].getSprite().setTextureRect(sf::IntRect{ 0, 195, 64, 65 });
 				else if (up == 1)
-					npcs[other_id].getSprite().setTextureRect(sf::IntRect{ 0, 0, 44, 48 });
+					npcs[other_id].getSprite().setTextureRect(sf::IntRect{ 0, 0, 64, 65 });
 
 				npcs[other_id].move(my_packet->x, my_packet->y);
 			}
@@ -323,16 +274,10 @@ void client_main()
 			int tile_x = i + g_left_x;
 			int tile_y = j + g_top_y;
 			if ((tile_x < 0) || (tile_y < 0)) continue;
-			//if (((tile_x + tile_y) % 2) == 0) {
-			if (((tile_x / 3 + tile_y / 3) % 2) == 0) {
-				white_tile.a_move(TILE_WIDTH * i + 7, TILE_WIDTH * j + 7);
-				white_tile.a_draw();
-			}
-			else
-			{
-				black_tile.a_move(TILE_WIDTH * i + 7, TILE_WIDTH * j + 7);
-				black_tile.a_draw();
-			}
+
+			black_tile.setTile(mapTile[tile_x][tile_y] * 64, 0);
+			black_tile.a_move(TILE_WIDTH * i + 7, TILE_WIDTH * j + 7);
+			black_tile.a_draw();
 		}
 	avatar.draw();
 	//	for (auto &pl : players) pl.draw();
@@ -364,11 +309,31 @@ void send_chat_packet(const wstring& text) {
 
 void send_move_packet(unsigned char dir)
 {
-	cs_packet_move m_packet;
-	m_packet.type = C2S_MOVE;
-	m_packet.size = sizeof(m_packet);
-	m_packet.direction = dir;
-	send_packet(&m_packet);
+	int x{ avatar.m_x };
+	int y{ avatar.m_y };
+
+	switch (dir) {
+	case D_UP:
+		if (y > 0) --y;
+		break;
+	case D_DOWN:
+		if (y < WORLD_HEIGHT - 1) ++y;
+		break;
+	case D_LEFT:
+		if (x > 0) --x;
+		break;
+	case D_RIGHT:
+		if (x < WORLD_WIDTH - 1) ++x;
+		break;
+	default:
+		DebugBreak();
+		exit(-1);
+	}
+		cs_packet_move m_packet;
+		m_packet.type = C2S_MOVE;
+		m_packet.size = sizeof(m_packet);
+		m_packet.direction = dir;
+		send_packet(&m_packet);
 }
 
 void send_attack_packet() {
@@ -404,6 +369,15 @@ int main()
 	pFmod->playSound(Sound[0], gr[0], false, &ch[0]);
 	sf::RenderWindow window(sf::VideoMode(WINDOW_WIDTH , WINDOW_HEIGHT), "2D CLIENT");
 	g_window = &window;
+
+	avatar.setWindow(g_window);
+	avatar.setWindowOffset(g_left_x, g_top_y);
+	black_tile.setWindow(g_window);
+	black_tile.setWindowOffset(g_left_x, g_top_y);
+	white_tile.setWindow(g_window);
+	white_tile.setWindowOffset(g_left_x, g_top_y);
+
+
 
 	sf::View view = g_window->getView();
 	view.zoom(2.0f);

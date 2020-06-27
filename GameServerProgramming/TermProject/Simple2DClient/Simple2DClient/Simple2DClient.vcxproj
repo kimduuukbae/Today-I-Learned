@@ -126,6 +126,7 @@
     <ClCompile Include="2dClient.cpp" />
     <ClCompile Include="ChatManager.cpp" />
     <ClCompile Include="InfoManager.cpp" />
+    <ClCompile Include="Object.cpp" />
     <ClCompile Include="stdafx.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -142,6 +143,7 @@
     <ClInclude Include="..\..\IOCPGameServer\IOCPGameServer\protocol.h" />
     <ClInclude Include="ChatManager.h" />
     <ClInclude Include="InfoManager.h" />
+    <ClInclude Include="Object.h" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
