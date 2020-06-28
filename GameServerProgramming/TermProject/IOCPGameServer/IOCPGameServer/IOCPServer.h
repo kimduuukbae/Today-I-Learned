@@ -1,13 +1,5 @@
 #pragma once
-
-#include <WS2tcpip.h>
-#include <MSWSock.h>
-#include <mutex>
-#include <atomic>
-#include <chrono>
-#include <unordered_set>
-
-#include "protocol.h"
+#include "stdafx.h"
 
 extern "C" {
 #include "lua.h"
@@ -33,7 +25,8 @@ enum class EOperation : int {
 	E_ACCEPT,
 	E_NPCMOVE,
 	E_PLAYERMOVE,
-	E_RESPAWNMONSTER
+	E_RESPAWNMONSTER,
+	E_ATTACKMONSTER
 };
 
 enum class EStatus : int {
@@ -45,6 +38,7 @@ enum class EStatus : int {
 enum class EMonsterType : int {
 	E_PEACE = 1,
 	E_WAR = 2,
+	E_ATTACKING = 3
 };
 enum class EMonsterMoveType : int {
 	E_FIX = 1,
@@ -105,7 +99,7 @@ struct Npc {
 
 	EMonsterType type{};
 	EMonsterMoveType moveType{};
-
+	EMonsterType oldType{};
 	char name[MAX_ID_LEN + 1];
 	std::mutex mtx{};
 	std::unordered_set<int> viewList{};

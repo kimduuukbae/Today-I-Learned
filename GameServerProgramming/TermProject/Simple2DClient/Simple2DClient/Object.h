@@ -70,7 +70,7 @@ public:
 			window->draw(m_text);
 		}
 	}
-	void set_name(char str[]) {
+	void set_name(const char str[]) {
 		m_name.setString(str);
 		m_name.setFillColor(sf::Color(255, 255, 0));
 		m_name.setStyle(sf::Text::Bold);

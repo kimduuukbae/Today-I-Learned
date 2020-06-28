@@ -1,5 +1,5 @@
+#include "stdafx.h"
 #include "Database.h"
-#include <string>
 #include <sstream>
 using namespace std;
 

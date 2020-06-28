@@ -101,6 +101,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <AdditionalOptions>/D _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS %(AdditionalOptions)</AdditionalOptions>
+      <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -144,11 +145,15 @@
   <ItemGroup>
     <ClInclude Include="Database.h" />
     <ClInclude Include="IOCPServer.h" />
+    <ClInclude Include="AStar.h" />
     <ClInclude Include="protocol.h" />
+    <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Database.cpp" />
     <ClCompile Include="IOCPServer.cpp" />
+    <ClCompile Include="AStar.cpp" />
+    <ClCompile Include="stdafx.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="NPC.LUA" />

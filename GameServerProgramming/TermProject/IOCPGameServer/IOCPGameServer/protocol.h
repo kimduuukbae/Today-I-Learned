@@ -69,7 +69,7 @@ struct sc_packet_leave {
 };
 
 struct sc_packet_chat {
-	char size;
+	unsigned char size;
 	char type;
 	int	 id;
 	wchar_t mess[MAX_STR_LEN];

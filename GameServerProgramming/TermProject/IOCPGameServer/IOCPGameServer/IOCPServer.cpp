@@ -1,19 +1,7 @@
-#include <iostream>
-#include <thread>
-#include <queue>
-#include <tuple>
-#include <string>
-#include <vector>
-#include <array>
-#include <codecvt>
-#include <concurrent_priority_queue.h>
-#include <iterator>
-#include <fstream>
+#include "stdafx.h"
+#include "AStar.h"
 #include "IOCPServer.h"
 #include "Database.h"
-
-//TODO : 몬스터 AI 추가, 선공 몬스터 추가, A* 알고리즘, 장애물 추가
-
 
 #pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "mswsock.lib")
@@ -23,10 +11,9 @@ Client clients[MAX_USER_SIZE]{};
 HANDLE iocpHandle{};
 SOCKET listenSock{};
 Database dbDevice{};
-Npc npcs[NUM_NPC]{};
+Npc npcs[NUM_NPC + 1]{};
 concurrency::concurrent_priority_queue <EventType> eventQueue{};
 concurrency::concurrent_priority_queue <EventType> spawnQueue{};
-
 std::array<std::array<std::unordered_set<int>, WORLD_HEIGHT / SECTOR_SIZE>, WORLD_WIDTH / SECTOR_SIZE> npcSector{};
 std::array<std::array<std::unordered_set<int>, WORLD_HEIGHT / SECTOR_SIZE>, WORLD_WIDTH / SECTOR_SIZE> clientsSector{};
 std::mutex clientsSectorMtx[WORLD_WIDTH / SECTOR_SIZE][WORLD_HEIGHT / SECTOR_SIZE]{};
@@ -40,18 +27,12 @@ std::wstring utf8_to_wstring(const std::string_view& str) {
 	return myconv.from_bytes(str.data());
 }
 
-void findPathWithAStar(int cX, int cY, int tX, int tY) {
-	//TODO, ASTAR 알고리즘 제작
-	// 어짜피 가는길만 찾고, 첫길만 찾아야함
-	// 그거에 맞춰서 최적화하기 
-}
-
 std::pair<int, int> findPath(const Npc& target) {
 	int x{ target.x }, y{ target.y };
 	int direction{ rand() % 4 };
 	switch (direction) {
 	case D_UP:
-		if (y > 0 && !mapTile[x][y-1]) --y;
+		if (y > 0 && !mapTile[x][y - 1]) --y;
 		break;
 	case D_DOWN:
 		if (y < WORLD_HEIGHT - 1 && !mapTile[x][y + 1]) ++y;
@@ -274,7 +255,8 @@ void searchSector(int userId, int secPosX, int secPosY, std::unordered_set<int>&
 		if (isInArea(user.x, user.y, npcs[ClusterIdx].x, npcs[ClusterIdx].y, VIEW_RADIUS)) {
 			if (!npcs[ClusterIdx].isActive) {
 				npcs[ClusterIdx].isActive = true;
-				if(npcs[ClusterIdx].moveType == EMonsterMoveType::E_MOVE)
+				if(npcs[ClusterIdx].moveType == EMonsterMoveType::E_MOVE || 
+					npcs[ClusterIdx].type == EMonsterType::E_WAR)
 					eventQueue.push(EventType{ idCluster, userId, std::chrono::high_resolution_clock::now() });
 			}
 			npcs[ClusterIdx].mtx.lock();
@@ -398,23 +380,29 @@ void clientMove(int userId, int direction) {
 
 void enterGame(int userId, char name[]) {
 	Client& user{ clients[userId] };
-	if (connectedPlayer.count(name)) {
+	if (name[0] != 'S' && connectedPlayer.count(name)) {
 		sendLoginFailPacket(user.id);
 		closesocket(user.socket);
 		user.status = EStatus::E_FREE;
 	}
 	else {
-		auto info{ dbDevice.getUserInfo(utf8_to_wstring(name)) };
-		if (info.name == L"E") {
+		if (name[0] == 'S') {	// 스트레스 테스트
+			user.x = rand() % WORLD_WIDTH;
+			user.y = rand() % WORLD_HEIGHT;
+			user.level = 1;
+			user.hp = 100;
+			user.exp = 0;
+		}
+		else if (auto info{ dbDevice.getUserInfo(utf8_to_wstring(name)) }; info.name == L"E") {
 			dbDevice.addUserInfo(utf8_to_wstring(name));
-			user.x = 4;
+			user.x = 4; // 신규 유저
 			user.y = 15;
 			user.level = 1;
 			user.hp = 100;
 			user.exp = 0;
 		}
 		else {
-			user.x = info.x;
+			user.x = info.x; // 기존유저
 			user.y = info.y;
 			user.level = info.level;
 			user.hp = info.hp;
@@ -445,8 +433,6 @@ void enterGame(int userId, char name[]) {
 
 		std::string s{ user.name };
 		connectedPlayer.emplace(user.name);
-		s.append(" 님 안녕하세요.");
-		sendChatPacket(userId, -64, s.c_str());
 	}
 }
 
@@ -557,7 +543,7 @@ void clientInit() {
 		npcs[i].oldY = y;
 		npcs[i].oldSecX = secX;
 		npcs[i].oldSecY = secY;
-
+		npcs[i].oldType = npcs[i].type;
 		name.append("LV : ");
 		name.append(std::to_string(npcs[i].level));
 		npcs[i].expString = std::to_string(npcs[i].level * 5 * static_cast<int>(npcs[i].type) * static_cast<int>(npcs[i].moveType));
@@ -580,6 +566,29 @@ void clientInit() {
 		lua_register(L, "API_get_y_NPC", API_get_y_NPC);
 		name.clear();
 	}
+
+	// 여기서부터는 세워질 NPC들
+	
+	npcs[NUM_NPC].x = 10;
+	npcs[NUM_NPC].y = 13;
+	npcs[NUM_NPC].id = NUM_NPC + NPC_ID_START + 1;
+
+	auto [secX, secY] {getSectorPos(npcs[NUM_NPC].x, npcs[NUM_NPC].y)};
+	npcSector[secX][secY].emplace(npcs[NUM_NPC].id);
+	npcs[NUM_NPC].curSectX = secX;
+	npcs[NUM_NPC].curSectY = secY;
+	npcs[NUM_NPC].level = 1;
+	npcs[NUM_NPC].hp = 1;
+	npcs[NUM_NPC].type = EMonsterType::E_PEACE;
+	npcs[NUM_NPC].moveType = EMonsterMoveType::E_FIX;
+
+	npcs[NUM_NPC].oldX = 10;
+	npcs[NUM_NPC].oldY = 13;
+	npcs[NUM_NPC].oldSecX = secX;
+	npcs[NUM_NPC].oldSecY = secY;
+	npcs[NUM_NPC].oldType = npcs[NUM_NPC].type;
+	name.append("SUNGHWANG");
+	strcpy_s(npcs[NUM_NPC].name, name.c_str());
 
 	std::cout << "end Init" << std::endl;
 }
@@ -630,8 +639,19 @@ void processPacket(int userId, char* buf) {
 		user.mtx.lock();
 		std::unordered_set<int> oldViewList{ clients[userId].viewList };
 		user.mtx.unlock();
+
 		for (auto& target : oldViewList)
 			sendChatPacket(target, user.id, packet->mess);
+
+		if (user.hp <= 0 && isInArea(user.x, user.y, npcs[NUM_NPC].x, npcs[NUM_NPC].y, VIEW_RADIUS)) {
+			if (std::wcscmp(packet->mess, L"살려주세요")) {
+				sendChatPacket(user.id, npcs[NUM_NPC].id, L"특별히살려드리는겁니다.");
+				user.hp = 100;
+				user.exp = user.exp / 2;
+				sendChangeInfoPacket(user.id);
+			}
+		}
+
 		break;
 	}
 	case C2S_ATTACK: {
@@ -639,11 +659,12 @@ void processPacket(int userId, char* buf) {
 		if (std::chrono::duration<float, std::milli>
 			(curTime - clients[userId].lastAttackTime).count() > 1000.0f) {
 			Client& user{ clients[userId] };
+			if (user.hp <= 0)
+				break;
 			int x{ clients[userId].x };
 			int y{ clients[userId].y };
 
 			std::vector<int> v{};
-			// TODO : 근처 섹터도 검색하게 수정해야 함.
 			npcSectorMtx[user.curSectX][user.curSectY].lock();
 			v.reserve(npcSector[user.curSectX][user.curSectY].size());
 			for (auto& i : npcSector[user.curSectX][user.curSectY] )
@@ -659,17 +680,17 @@ void processPacket(int userId, char* buf) {
 					user.systemString.append(std::to_string(user.level * 20));
 					user.systemString.append(" 의 데미지를 입혔습니다.");
 					sendChatPacket(userId, -64, user.systemString.c_str());
+					if (npc.moveType == EMonsterMoveType::E_FIX && npc.type == EMonsterType::E_PEACE) {
+						eventQueue.push(EventType{ i, userId, std::chrono::high_resolution_clock::now() });
+						npc.type = EMonsterType::E_WAR;
+					}
+
 					npc.hp -= user.level * 20;
 					if (npc.hp <= 0) {
 						int getExp{ npc.level * 5 * static_cast<int>(npc.moveType) * static_cast<int>(npc.type) };
 						npc.hp = npc.level * 100;
 						user.exp += getExp;
 
-						user.systemString.clear();
-						user.systemString.append("MONSTER를 처치하여 ");
-						user.systemString.append(npc.expString);
-						user.systemString.append(" 의 경험치를 얻었습니다.");
-						sendChatPacket(userId, -64, user.systemString.c_str());
 						sendLeavePacket(userId, i);
 
 						npc.viewList.clear();
@@ -684,9 +705,6 @@ void processPacket(int userId, char* buf) {
 						if (user.exp >= expList[user.level]) {
 							user.exp -= expList[user.level];
 							user.level += 1;
-							user.systemString.clear();
-							user.systemString.append("-------------------LEVEL UP-------------------");
-							sendChatPacket(userId, -64, user.systemString.c_str());
 						}
 						sendChangeInfoPacket(user.id);
 
@@ -758,7 +776,7 @@ void timerThread() {
 
 				ExOverlapped* exOver{ new ExOverlapped{} };
 				exOver->operation = EOperation::E_RESPAWNMONSTER;
-				exOver->Id = tmp.currentId;
+				exOver->Id = tmp.targetId;
 				PostQueuedCompletionStatus(iocpHandle, 1, tmp.currentId, &exOver->overlapped);
 			}
 			else
@@ -839,17 +857,34 @@ void workerThread() {
 		
 		case EOperation::E_NPCMOVE: {
 			key = key - (NPC_ID_START + 1);
-			const auto [x, y] {findPath(npcs[key])};
 			Npc& npc{ npcs[key] };
-
-			if (!npc.isActive)
+			Client& user{ clients[exOver->Id] };
+			int mX{}, mY{};
+			if (!npc.isActive) {
+				delete exOver;
 				break;
+			}
+			if (npc.type == EMonsterType::E_PEACE) {
+				const auto [x, y] {findPath(npc)};
+				mX = x;
+				mY = y;
+			}
+			else {
+				if (getDistance(npc.x, npc.y, user.x, user.y) < 2) {
+					exOver->operation = EOperation::E_ATTACKMONSTER;
+					PostQueuedCompletionStatus(iocpHandle, 1, key + (NPC_ID_START + 1), &exOver->overlapped);
+					break;
+				}
+				const auto [x, y] {findPathWithAStar(npc.x, npc.y, user.x, user.y)};
+				mX = x;
+				mY = y;
+			}
 
-			npc.x = x;
-			npc.y = y;
+			npc.x = mX;
+			npc.y = mY;
 
-			auto [secX, secY] {getSectorPos(x, y)};
-			
+			auto [secX, secY] {getSectorPos(mX, mY)};
+
 			bool isArea{ false };
 			for (int i = -1; i < 2; ++i)
 				for (int j = -1; j < 2; ++j)
@@ -869,27 +904,15 @@ void workerThread() {
 				npc.curSectY = secY;
 			}
 
-			if (isArea) 
+			if (isArea)
 				eventQueue.push(EventType{ static_cast<int>(key + NPC_ID_START + 1), exOver->Id, std::chrono::high_resolution_clock::now() });
-			else 
+			else
 				npcs[key].isActive = false;
-			
 			delete exOver;
 			break;
 		}
 		
 		case EOperation::E_PLAYERMOVE: {
-			npcs[key- (NPC_ID_START + 1)].luaMtx.lock();
-			lua_State*& L{npcs[key - (NPC_ID_START + 1)].L};
-			lua_getglobal(L, "eventPlayerMove");
-			lua_pushnumber(L, exOver->Id);
-
-			if (int error{ lua_pcall(L, 1, 0, 0) }; error) {
-				std::cout << lua_tostring(L, -1);
-				lua_pop(L, 1);
-			}
-
-			npcs[key - (NPC_ID_START + 1)].luaMtx.unlock();
 			delete exOver;
 			break;
 		}
@@ -914,9 +937,19 @@ void workerThread() {
 			if (isArea) {
 				npc.isActive = true;
 				if (npc.moveType == EMonsterMoveType::E_MOVE)
-					eventQueue.push(EventType{ static_cast<int>(key), exOver->Id, std::chrono::high_resolution_clock::now() });
+					eventQueue.push(EventType{ static_cast<int>(key), *npc.viewList.begin(), std::chrono::high_resolution_clock::now() });
 			}
 				
+			delete exOver;
+			break;
+		}
+		case EOperation::E_ATTACKMONSTER: {
+			int idx{ static_cast<int>(key - (NPC_ID_START + 1)) };
+			Npc& npc{ npcs[idx] };
+			
+			clients[exOver->Id].hp -= npc.level * 5;
+			sendChangeInfoPacket(exOver->Id);
+			eventQueue.push(EventType{ static_cast<int>(key), exOver->Id, std::chrono::high_resolution_clock::now() });	
 			delete exOver;
 			break;
 		}

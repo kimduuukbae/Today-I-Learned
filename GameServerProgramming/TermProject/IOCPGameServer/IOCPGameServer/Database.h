@@ -1,6 +1,5 @@
 #pragma once
-#include <string_view>
-#include <tuple>
+
 #include <windows.h>
 #include <sqlext.h>
 

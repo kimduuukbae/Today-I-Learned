@@ -24,12 +24,24 @@
     <ClInclude Include="Database.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="AStar.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="stdafx.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="IOCPServer.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="Database.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="AStar.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="stdafx.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>

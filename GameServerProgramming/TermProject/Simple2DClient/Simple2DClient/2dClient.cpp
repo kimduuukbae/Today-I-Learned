@@ -25,8 +25,8 @@ Object white_tile;
 Object black_tile;
 
 sf::Texture* board;
-sf::Texture* character;
-sf::Texture* monster[2];
+sf::Texture* character[2];
+sf::Texture* monster[3];
 FMOD::System* pFmod;
 FMOD::Channel* ch[2];
 FMOD::ChannelGroup* gr[2];
@@ -39,20 +39,25 @@ void client_initialize()
 	pFmod->createSound("data/bgm.mp3", FMOD_LOOP_NORMAL, nullptr, &Sound[0]);
 	pFmod->createSound("data/attack.wav", FMOD_LOOP_OFF, nullptr, &Sound[1]);
 	board = new sf::Texture;
-	character = new sf::Texture;
+	character[0] = new sf::Texture;
+	character[1] = new sf::Texture;
 	monster[0] = new sf::Texture;
 	monster[1] = new sf::Texture;
+	monster[2] = new sf::Texture;
 	if (false == g_font.loadFromFile("nanum.ttf")) {
 		cout << "Font Loading Error!\n";
 		while (true);
 	}
 	board->loadFromFile("data/tile.png");
-	character->loadFromFile("data/character.png");
+	character[0]->loadFromFile("data/character.png");
+	character[1]->loadFromFile("data/character_die.png");
 	monster[0]->loadFromFile("data/enemy1.png");
 	monster[1]->loadFromFile("data/enemy2.png");
+	monster[2]->loadFromFile("data/sunghwang.png");
 	white_tile = Object{ *board, 5, 5, TILE_WIDTH, TILE_WIDTH };
 	black_tile = Object{ *board, 69, 5, TILE_WIDTH, TILE_WIDTH };
-	avatar = Object{ *character, 0, 0, 59, 59 };
+	avatar = Object{ *character[0], 0, 0, 59, 59 };
+
 	avatar.move(4, 4);
 	avatar.setFont(g_font);
 	avatar.setSize(1.8f, 1.8f);
@@ -73,7 +78,10 @@ void client_initialize()
 void client_finish()
 {	
 	delete board;
-	delete character;
+	delete character[0];
+	delete character[1];
+	delete monster[0];
+	delete monster[1];
 }
 
 void ProcessPacket(char* ptr)
@@ -89,7 +97,26 @@ void ProcessPacket(char* ptr)
 		g_left_x = my_packet->x - (SCREEN_WIDTH / 2);
 		g_top_y = my_packet->y - (SCREEN_HEIGHT / 2);
 		avartarInfo.changeInfo(my_packet->exp, my_packet->hp, my_packet->level);
+
+		if (my_packet->hp > 0) {
+			avatar.getSprite().setTexture(*character[0]);
+			avatar.getSprite().setTextureRect(sf::IntRect{ 0, 0, 59, 59 });
+			avatar.setSize(1.8f, 1.8f);
+			avatar.setOffset(-10.0f, -20.0f);
+		}
+		else {
+			avatar.getSprite().setTexture(*character[1]);
+			avatar.getSprite().setTextureRect(sf::IntRect{ 0,0, 39, 48 });
+			avatar.setOffset(10.0f, 0.0f);
+			avatar.setSize(1.8f, 1.8f);
+		}
 		avatar.show();
+		std::wstring s{};
+
+		s.append(L"<system> : ");
+		s.append(utf8_to_wstring(avatar.name));
+		s.append(L" 님 안녕하세요.");
+		allChat.pushText(s.c_str());
 	}
 	break;
 
@@ -105,25 +132,34 @@ void ProcessPacket(char* ptr)
 			avatar.show();
 		}
 		else {
-			if (id < NPC_ID_START)
-				npcs[id] = Object{ *character, 0, 0, 59, 59 };
-			else {
-				if (my_packet->o_type == 1)
-					npcs[id] = Object{ *monster[0], 0, 0, 64, 65 };
-				else if (my_packet->o_type == 2)
-					npcs[id] = Object{ *monster[1], 0, 0, 64, 65 };
+			if (strcmp(my_packet->name, "SUNGHWANG") == 0) {
+				npcs[id] = Object{ *monster[2], 0, 0, 97, 254 };
+				npcs[id].setOffset(-15.0f, 0);
+				npcs[id].setSize(0.5f, 0.5f);
+				npcs[id].nameOffset(20, -10);
+				npcs[id].set_name("^_^");
 			}
-				
+			else {
+				if (id < NPC_ID_START)
+					npcs[id] = Object{ *character[0], 0, 0, 59, 59 };
+				else {
+					if (my_packet->o_type == 1)
+						npcs[id] = Object{ *monster[0], 0, 0, 64, 65 };
+					else if (my_packet->o_type == 2)
+						npcs[id] = Object{ *monster[1], 0, 0, 64, 65 };
+				}
+				npcs[id].setOffset(-15.0f, -25.0f);
+				npcs[id].setSize(1.8f, 1.8f);
+				npcs[id].nameOffset(20, -15);
+				npcs[id].set_name(my_packet->name);
+			}
 			strcpy_s(npcs[id].name, my_packet->name);
-			npcs[id].set_name(my_packet->name);
+			
 			npcs[id].move(my_packet->x, my_packet->y);
 			npcs[id].show();
 			npcs[id].setFont(g_font);
 			npcs[id].setWindow(g_window);
 			npcs[id].setWindowOffset(g_left_x, g_top_y);
-			npcs[id].setOffset(-15.0f, -25.0f);
-			npcs[id].setSize(1.8f, 1.8f);
-			npcs[id].nameOffset(20, -15);
 		}
 	}
 	break;
@@ -134,15 +170,17 @@ void ProcessPacket(char* ptr)
 		if (other_id == g_myid) {
 			int right{ my_packet->x - avatar.m_x };
 			int up{ my_packet->y - avatar.m_y };
-			if (right == 1)
-				avatar.getSprite().setTextureRect(sf::IntRect{0, 118, 59, 59});
-			else if (right == -1)
-				avatar.getSprite().setTextureRect(sf::IntRect{ 0, 59, 59, 59 });
-			else if (up == -1)
-				avatar.getSprite().setTextureRect(sf::IntRect{0 , 177, 59, 59 });
-			else if (up == 1)
-				avatar.getSprite().setTextureRect(sf::IntRect{ 0, 0, 59, 59 });
-
+			auto [level, exp, hp] {avartarInfo.getInfo()};
+			if (hp > 0) {
+				if (right == 1)
+					avatar.getSprite().setTextureRect(sf::IntRect{ 0, 118, 59, 59 });
+				else if (right == -1)
+					avatar.getSprite().setTextureRect(sf::IntRect{ 0, 59, 59, 59 });
+				else if (up == -1)
+					avatar.getSprite().setTextureRect(sf::IntRect{ 0 , 177, 59, 59 });
+				else if (up == 1)
+					avatar.getSprite().setTextureRect(sf::IntRect{ 0, 0, 59, 59 });
+			}
 			
 			avatar.move(my_packet->x, my_packet->y);
 			g_left_x = my_packet->x - (SCREEN_WIDTH / 2);
@@ -152,15 +190,26 @@ void ProcessPacket(char* ptr)
 			if (0 != npcs.count(other_id)) {
 				int right{ my_packet->x - npcs[other_id].m_x };
 				int up{ my_packet->y - npcs[other_id].m_y };
-				
-				if (right == 1)
-					npcs[other_id].getSprite().setTextureRect(sf::IntRect{ 0, 130, 64, 65 });
-				else if (right == -1)
-					npcs[other_id].getSprite().setTextureRect(sf::IntRect{ 0, 65, 64, 65 });
-				else if (up == -1)
-					npcs[other_id].getSprite().setTextureRect(sf::IntRect{ 0, 195, 64, 65 });
-				else if (up == 1)
-					npcs[other_id].getSprite().setTextureRect(sf::IntRect{ 0, 0, 64, 65 });
+				if (other_id >= NPC_ID_START) {
+					if (right == 1)
+						npcs[other_id].getSprite().setTextureRect(sf::IntRect{ 0, 130, 64, 65 });
+					else if (right == -1)
+						npcs[other_id].getSprite().setTextureRect(sf::IntRect{ 0, 65, 64, 65 });
+					else if (up == -1)
+						npcs[other_id].getSprite().setTextureRect(sf::IntRect{ 0, 195, 64, 65 });
+					else if (up == 1)
+						npcs[other_id].getSprite().setTextureRect(sf::IntRect{ 0, 0, 64, 65 });
+				}
+				else {
+					if (right == 1)
+						avatar.getSprite().setTextureRect(sf::IntRect{ 0, 118, 59, 59 });
+					else if (right == -1)
+						avatar.getSprite().setTextureRect(sf::IntRect{ 0, 59, 59, 59 });
+					else if (up == -1)
+						avatar.getSprite().setTextureRect(sf::IntRect{ 0 , 177, 59, 59 });
+					else if (up == 1)
+						avatar.getSprite().setTextureRect(sf::IntRect{ 0, 0, 59, 59 });
+				}
 
 				npcs[other_id].move(my_packet->x, my_packet->y);
 			}
@@ -200,7 +249,7 @@ void ProcessPacket(char* ptr)
 				s.append(utf8_to_wstring(npcs[o_id].name));
 				npcs[o_id].add_chat(my_packet->mess);
 			}
-			s.append(L" : ");
+			s.append(L" ");
 			s.append(my_packet->mess);
 			allChat.pushText(s.c_str());
 		}
@@ -208,6 +257,43 @@ void ProcessPacket(char* ptr)
 	break;
 	case S2C_STAT_CHANGE: {
 		sc_packet_stat_change* my_packet = reinterpret_cast<sc_packet_stat_change*>(ptr);
+		auto [level, exp, hp] {avartarInfo.getInfo()};
+		int tempHp{ hp - std::abs(my_packet->hp) };
+		int tempExp{ my_packet->exp - exp };
+		int tempLevel{ my_packet->level - level };
+		std::wstring s{};
+		if (my_packet->hp <= hp) {
+			if (tempHp > 0) {
+				s.append(L"<system> : MONSTER가 공격하여 ");
+				s.append(std::to_wstring(tempHp));
+				s.append(L" 의 데미지를 입었습니다.");
+				allChat.pushText(s.c_str());
+			}
+			else if (my_packet->hp < 0) {
+				avatar.getSprite().setTexture(*character[1]);
+				avatar.getSprite().setTextureRect(sf::IntRect{ 0,0, 39, 48 });
+				avatar.setOffset(10.0f, 0.0f);
+				avatar.setSize(1.8f, 1.8f);
+			}
+			if (tempExp > 0) {
+				s.clear();
+				s.append(L"<system> : MONSTER를 처치하여 ");
+				s.append(std::to_wstring(tempExp));
+				s.append(L" 의 경험치를 얻었습니다.");
+				allChat.pushText(s.c_str());
+			}
+			if (tempLevel > 0) {
+				s.clear();
+				s.append(L"<system> : -------------------LEVEL UP-------------------");
+				allChat.pushText(s.c_str());
+			}
+		}
+		else {
+			avatar.getSprite().setTexture(*character[0]);
+			avatar.getSprite().setTextureRect(sf::IntRect{ 0, 0, 59, 59 });
+			avatar.setSize(1.8f, 1.8f);
+			avatar.setOffset(-10.0f, -20.0f);
+		}
 		avartarInfo.changeInfo(my_packet->exp, my_packet->hp, my_packet->level);
 	}
 	break;
