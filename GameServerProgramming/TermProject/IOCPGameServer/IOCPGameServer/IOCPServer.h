@@ -18,6 +18,7 @@ constexpr int VIEW_RADIUS{ 10 };
 
 constexpr float MOVE_TIME{ 1000.0f };
 constexpr float SPAWN_TIME{ 5000.0f };
+constexpr float RECOVERY_TIME{ 5000.0f };
 
 enum class EOperation : int {
 	E_RECV,
@@ -26,7 +27,8 @@ enum class EOperation : int {
 	E_NPCMOVE,
 	E_PLAYERMOVE,
 	E_RESPAWNMONSTER,
-	E_ATTACKMONSTER
+	E_ATTACKMONSTER,
+	E_RECOVERY
 };
 
 enum class EStatus : int {

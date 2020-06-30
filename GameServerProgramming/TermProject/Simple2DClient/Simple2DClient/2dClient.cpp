@@ -202,13 +202,13 @@ void ProcessPacket(char* ptr)
 				}
 				else {
 					if (right == 1)
-						avatar.getSprite().setTextureRect(sf::IntRect{ 0, 118, 59, 59 });
+						npcs[other_id].getSprite().setTextureRect(sf::IntRect{ 0, 118, 59, 59 });
 					else if (right == -1)
-						avatar.getSprite().setTextureRect(sf::IntRect{ 0, 59, 59, 59 });
+						npcs[other_id].getSprite().setTextureRect(sf::IntRect{ 0, 59, 59, 59 });
 					else if (up == -1)
-						avatar.getSprite().setTextureRect(sf::IntRect{ 0 , 177, 59, 59 });
+						npcs[other_id].getSprite().setTextureRect(sf::IntRect{ 0 , 177, 59, 59 });
 					else if (up == 1)
-						avatar.getSprite().setTextureRect(sf::IntRect{ 0, 0, 59, 59 });
+						npcs[other_id].getSprite().setTextureRect(sf::IntRect{ 0, 0, 59, 59 });
 				}
 
 				npcs[other_id].move(my_packet->x, my_packet->y);
@@ -249,7 +249,7 @@ void ProcessPacket(char* ptr)
 				s.append(utf8_to_wstring(npcs[o_id].name));
 				npcs[o_id].add_chat(my_packet->mess);
 			}
-			s.append(L" ");
+			s.append(L" : ");
 			s.append(my_packet->mess);
 			allChat.pushText(s.c_str());
 		}
@@ -258,41 +258,48 @@ void ProcessPacket(char* ptr)
 	case S2C_STAT_CHANGE: {
 		sc_packet_stat_change* my_packet = reinterpret_cast<sc_packet_stat_change*>(ptr);
 		auto [level, exp, hp] {avartarInfo.getInfo()};
-		int tempHp{ hp - std::abs(my_packet->hp) };
 		int tempExp{ my_packet->exp - exp };
+		int tempHp{ hp - std::abs(my_packet->hp) };
 		int tempLevel{ my_packet->level - level };
 		std::wstring s{};
-		if (my_packet->hp <= hp) {
-			if (tempHp > 0) {
-				s.append(L"<system> : MONSTER가 공격하여 ");
-				s.append(std::to_wstring(tempHp));
-				s.append(L" 의 데미지를 입었습니다.");
-				allChat.pushText(s.c_str());
-			}
-			else if (my_packet->hp < 0) {
-				avatar.getSprite().setTexture(*character[1]);
-				avatar.getSprite().setTextureRect(sf::IntRect{ 0,0, 39, 48 });
-				avatar.setOffset(10.0f, 0.0f);
-				avatar.setSize(1.8f, 1.8f);
-			}
-			if (tempExp > 0) {
-				s.clear();
-				s.append(L"<system> : MONSTER를 처치하여 ");
-				s.append(std::to_wstring(tempExp));
-				s.append(L" 의 경험치를 얻었습니다.");
-				allChat.pushText(s.c_str());
-			}
-			if (tempLevel > 0) {
-				s.clear();
-				s.append(L"<system> : -------------------LEVEL UP-------------------");
-				allChat.pushText(s.c_str());
-			}
+		
+		if (tempHp != 0 && my_packet->hp != 100 && hp > my_packet->hp) {
+			// 공격당했고 HP가 남아있다.
+			s.append(L"<system> : MONSTER가 공격하여 ");
+			if (hp > std::abs(my_packet->hp))
+				s.append(std::to_wstring(hp - std::abs(my_packet->hp)));
+			else
+				s.append(std::to_wstring(std::abs(my_packet->hp) + hp));
+			s.append(L" 의 데미지를 입었습니다.");
+
+			allChat.pushText(s.c_str());
 		}
-		else {
+		else if (my_packet->hp == 100) {
 			avatar.getSprite().setTexture(*character[0]);
 			avatar.getSprite().setTextureRect(sf::IntRect{ 0, 0, 59, 59 });
 			avatar.setSize(1.8f, 1.8f);
 			avatar.setOffset(-10.0f, -20.0f);
+		}
+
+		if (my_packet->hp <= 0) {
+			avatar.getSprite().setTexture(*character[1]);
+			avatar.getSprite().setTextureRect(sf::IntRect{ 0,0, 39, 48 });
+			avatar.setOffset(10.0f, 0.0f);
+			avatar.setSize(1.8f, 1.8f);
+		}
+
+		if (tempExp > 0) {
+			s.clear();
+			s.append(L"<system> : MONSTER를 처치하여 ");
+			s.append(std::to_wstring(tempExp));
+			s.append(L" 의 경험치를 얻었습니다.");
+			allChat.pushText(s.c_str());
+		}
+		if (tempLevel > 0) {
+			s.clear();
+			s.append(L"<system> : -------------------LEVEL UP-------------------");
+			allChat.pushText(s.c_str());
+
 		}
 		avartarInfo.changeInfo(my_packet->exp, my_packet->hp, my_packet->level);
 	}

@@ -17,7 +17,7 @@ ID3D12Resource* CreateBufferResource(ID3D12Device* pd3dDevice, ID3D12GraphicsCom
     d3dResourceDesc.Height = 1;
     d3dResourceDesc.DepthOrArraySize = 1;   // 3차원 텍스쳐라면 사용
     d3dResourceDesc.MipLevels = 1;
-    d3dResourceDesc.Format = DXGI_FORMAT_UNKNOWN;   // 알려진 바 없음
+    d3dResourceDesc.Format = DXGI_FORMAT_UNKNOWN;   // 알려진 바 없음 ( 어떻게 쓰일지 모름 )
     d3dResourceDesc.SampleDesc.Count = 1;
     d3dResourceDesc.SampleDesc.Quality = 0;
     d3dResourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;    // 리소스가 행순서로 되어있음!
@@ -64,7 +64,7 @@ ID3D12Resource* CreateBufferResource(ID3D12Device* pd3dDevice, ID3D12GraphicsCom
                 }
                 break;
             }
-            case D3D12_HEAP_TYPE_UPLOAD: {
+            case D3D12_HEAP_TYPE_UPLOAD: {  // 업로드 힙이라면 그냥 복사만 해줘도 됨!
                 D3D12_RANGE d3dReadRange{ 0, 0 };
                 UINT8* pBufferDataBegin{ nullptr };
                 pd3dBuffer->Map(0, &d3dReadRange, (void**)&pBufferDataBegin);

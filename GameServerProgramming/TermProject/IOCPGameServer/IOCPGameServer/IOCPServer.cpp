@@ -14,6 +14,7 @@ Database dbDevice{};
 Npc npcs[NUM_NPC + 1]{};
 concurrency::concurrent_priority_queue <EventType> eventQueue{};
 concurrency::concurrent_priority_queue <EventType> spawnQueue{};
+concurrency::concurrent_priority_queue <EventType> hpQueue{};
 std::array<std::array<std::unordered_set<int>, WORLD_HEIGHT / SECTOR_SIZE>, WORLD_WIDTH / SECTOR_SIZE> npcSector{};
 std::array<std::array<std::unordered_set<int>, WORLD_HEIGHT / SECTOR_SIZE>, WORLD_WIDTH / SECTOR_SIZE> clientsSector{};
 std::mutex clientsSectorMtx[WORLD_WIDTH / SECTOR_SIZE][WORLD_HEIGHT / SECTOR_SIZE]{};
@@ -344,7 +345,7 @@ void clientMove(int userId, int direction) {
 		DebugBreak();
 		exit(-1);
 	}
-	if (!mapTile[x][y]) {
+	if ( !mapTile[x][y] || user.hp <= 0 ) {
 		user.x = x;
 		user.y = y;
 
@@ -387,8 +388,13 @@ void enterGame(int userId, char name[]) {
 	}
 	else {
 		if (name[0] == 'S') {	// 스트레스 테스트
-			user.x = rand() % WORLD_WIDTH;
-			user.y = rand() % WORLD_HEIGHT;
+			int x{}, y{};
+			do {
+				x = rand() % WORLD_WIDTH;
+				y = rand() % WORLD_HEIGHT;
+			} while (mapTile[x][y]);
+			user.x = x;
+			user.y = y;
 			user.level = 1;
 			user.hp = 100;
 			user.exp = 0;
@@ -411,9 +417,8 @@ void enterGame(int userId, char name[]) {
 		user.mtx.lock();
 		strcpy_s(user.name, name);
 		user.name[MAX_ID_LEN] = '\0';
-		std::unordered_set<int> oldViewList{};
 		user.mtx.unlock();
-
+		std::unordered_set<int> oldViewList{};
 		sendLoginPacket(userId);
 		user.status = EStatus::E_ACTIVE;
 
@@ -433,6 +438,7 @@ void enterGame(int userId, char name[]) {
 
 		std::string s{ user.name };
 		connectedPlayer.emplace(user.name);
+		hpQueue.push(EventType{ user.id, user.id, std::chrono::high_resolution_clock::now() });
 	}
 }
 
@@ -441,7 +447,7 @@ int API_send_message(lua_State* L) {
 	int objId{ static_cast<int>(lua_tointeger(L, -2)) };
 	char* message{ (char*)lua_tostring(L, -1)};
 	lua_pop(L, 3);
-
+	sendChatPacket(playerId, objId + (NPC_ID_START + 1), message);
 	return 0;
 }
 
@@ -470,6 +476,14 @@ int API_get_y_NPC(lua_State* L) {
 	int obj_id = (int)lua_tointeger(L, -1);
 	int y{ npcs[obj_id].y };
 	lua_pushnumber(L, y);
+	return 1;
+}
+
+int API_SetRespawn_Player(lua_State* L) {
+	int obj_id = (int)lua_tointeger(L, -1);
+	clients[obj_id].hp = 100;
+	clients[obj_id].exp /= 2;
+	sendChangeInfoPacket(obj_id);
 	return 1;
 }
 
@@ -590,6 +604,17 @@ void clientInit() {
 	name.append("SUNGHWANG");
 	strcpy_s(npcs[NUM_NPC].name, name.c_str());
 
+	lua_State* L = npcs[NUM_NPC].L = luaL_newstate();
+	luaL_openlibs(L);
+	luaL_loadfile(L, "NPC.LUA");
+	lua_pcall(L, 0, 0, 0);
+	lua_getglobal(L, "setId");
+	lua_pushnumber(L, NUM_NPC);
+	lua_pcall(L, 1, 0, 0);
+	lua_pop(L, 1);
+
+	lua_register(L, "API_send_message", API_send_message);
+	lua_register(L, "API_SetRespawn_Player", API_SetRespawn_Player);
 	std::cout << "end Init" << std::endl;
 }
 
@@ -602,12 +627,34 @@ void disconnect(int userId) {
 	clientsSector[secX][secY].erase(userId);
 	clientsSectorMtx[secX][secY].unlock();
 
+	std::vector<int> v{};
+	v.reserve(npcSector[secX][secY].size());
+
+	for (int i = -1; i < 2; ++i) {
+		for (int j = -1; j < 2; ++j) {
+			if (secX + i < 0 || secX + i >(WORLD_WIDTH / SECTOR_SIZE) - 1 ||
+				secY + j < 0 || secY + j >(WORLD_WIDTH / SECTOR_SIZE) - 1)
+				continue;
+			npcSectorMtx[secX + i][secY + j].lock();
+			for (auto& it : npcSector[secX + i][secY + j])
+				v.emplace_back(it);
+			npcSectorMtx[secX + i][secY + j].unlock();
+		}
+	}
+
+	for (auto& i : v) {
+		int idCluster{ i - (NPC_ID_START + 1) };
+		if (npcs[idCluster].viewList.count(user.id))
+			npcs[idCluster].viewList.erase(user.id);
+	}
+
 	if (connectedPlayer.contains(user.name))
 		connectedPlayer.erase(user.name);
 
 	user.status = EStatus::E_ALLOC;
 	sendLeavePacket(userId, userId);
-	dbDevice.setUserInfo(UserInfo{ utf8_to_wstring(user.name), user.x, user.y, user.level, user.exp, user.hp });
+	if(strcmp(user.name, "S") != 0)
+		dbDevice.setUserInfo(UserInfo{ utf8_to_wstring(user.name), user.x, user.y, user.level, user.exp, user.hp });
 
 	closesocket(user.socket);
 	for (auto& client : clients) {
@@ -645,9 +692,16 @@ void processPacket(int userId, char* buf) {
 
 		if (user.hp <= 0 && isInArea(user.x, user.y, npcs[NUM_NPC].x, npcs[NUM_NPC].y, VIEW_RADIUS)) {
 			if (std::wcscmp(packet->mess, L"살려주세요")) {
-				sendChatPacket(user.id, npcs[NUM_NPC].id, L"특별히살려드리는겁니다.");
-				user.hp = 100;
-				user.exp = user.exp / 2;
+				npcs[NUM_NPC].luaMtx.lock();
+				lua_State*& L{ npcs[NUM_NPC].L };
+				lua_getglobal(L, "respawnPlayer");
+				lua_pushnumber(L, user.id);
+				lua_pushnumber(L, rand() % 4);
+				if (int error{ lua_pcall(L, 2, 0, 0) }; error) {
+					std::cout << lua_tostring(L, -1);
+					lua_pop(L, 1);
+				}
+				npcs[NUM_NPC].luaMtx.unlock();
 				sendChangeInfoPacket(user.id);
 			}
 		}
@@ -682,12 +736,15 @@ void processPacket(int userId, char* buf) {
 					sendChatPacket(userId, -64, user.systemString.c_str());
 					if (npc.moveType == EMonsterMoveType::E_FIX && npc.type == EMonsterType::E_PEACE) {
 						eventQueue.push(EventType{ i, userId, std::chrono::high_resolution_clock::now() });
-						npc.type = EMonsterType::E_WAR;
+						npc.type = EMonsterType::E_ATTACKING;
 					}
+					else if (npc.type == EMonsterType::E_PEACE )
+						npc.type = EMonsterType::E_ATTACKING;
 
 					npc.hp -= user.level * 20;
 					if (npc.hp <= 0) {
-						int getExp{ npc.level * 5 * static_cast<int>(npc.moveType) * static_cast<int>(npc.type) };
+						auto typeExp{ static_cast<int>(npc.oldType) };
+						int getExp{ npc.level * 5 * static_cast<int>(npc.moveType) * typeExp };
 						npc.hp = npc.level * 100;
 						user.exp += getExp;
 
@@ -755,6 +812,7 @@ void recvPacketConstruct(int userId, int ioByte) {
 void timerThread() {
 	while (1) {
 		EventType tmp{};
+		bool isTry{ false };
 		if (eventQueue.try_pop(tmp)) {
 			auto curTime{ std::chrono::high_resolution_clock::now() };
 
@@ -764,6 +822,7 @@ void timerThread() {
 				exOver->operation = EOperation::E_NPCMOVE;
 				exOver->Id = tmp.targetId;
 				PostQueuedCompletionStatus(iocpHandle, 1, tmp.currentId, &exOver->overlapped);
+				isTry = true;
 			}
 			else 
 				eventQueue.push(std::move(tmp));
@@ -778,11 +837,29 @@ void timerThread() {
 				exOver->operation = EOperation::E_RESPAWNMONSTER;
 				exOver->Id = tmp.targetId;
 				PostQueuedCompletionStatus(iocpHandle, 1, tmp.currentId, &exOver->overlapped);
+				isTry = true;
 			}
 			else
 				spawnQueue.push(std::move(tmp));
 		}
-		Sleep(1);
+
+		if (hpQueue.try_pop(tmp)) {
+			auto curTime{ std::chrono::high_resolution_clock::now() };
+
+			if (std::chrono::duration<float, std::milli>
+				(curTime - tmp.eventTime).count() > RECOVERY_TIME) {
+
+				ExOverlapped* exOver{ new ExOverlapped{} };
+				exOver->operation = EOperation::E_RECOVERY;
+				exOver->Id = tmp.targetId;
+				PostQueuedCompletionStatus(iocpHandle, 1, tmp.currentId, &exOver->overlapped);
+				isTry = true;
+			}
+			else
+				hpQueue.push(std::move(tmp));
+		}
+		if(!isTry)
+			Sleep(1);
 	}
 }
 
@@ -864,7 +941,7 @@ void workerThread() {
 				delete exOver;
 				break;
 			}
-			if (npc.type == EMonsterType::E_PEACE) {
+			if (npc.type == EMonsterType::E_PEACE || user.hp <= 0) {
 				const auto [x, y] {findPath(npc)};
 				mX = x;
 				mY = y;
@@ -906,8 +983,10 @@ void workerThread() {
 
 			if (isArea)
 				eventQueue.push(EventType{ static_cast<int>(key + NPC_ID_START + 1), exOver->Id, std::chrono::high_resolution_clock::now() });
-			else
+			else {
 				npcs[key].isActive = false;
+				npcs[key].type = npcs[key].oldType;
+			}
 			delete exOver;
 			break;
 		}
@@ -936,7 +1015,7 @@ void workerThread() {
 
 			if (isArea) {
 				npc.isActive = true;
-				if (npc.moveType == EMonsterMoveType::E_MOVE)
+				if (npc.moveType == EMonsterMoveType::E_MOVE || npc.type == EMonsterType::E_WAR)
 					eventQueue.push(EventType{ static_cast<int>(key), *npc.viewList.begin(), std::chrono::high_resolution_clock::now() });
 			}
 				
@@ -946,10 +1025,22 @@ void workerThread() {
 		case EOperation::E_ATTACKMONSTER: {
 			int idx{ static_cast<int>(key - (NPC_ID_START + 1)) };
 			Npc& npc{ npcs[idx] };
-			
 			clients[exOver->Id].hp -= npc.level * 5;
 			sendChangeInfoPacket(exOver->Id);
 			eventQueue.push(EventType{ static_cast<int>(key), exOver->Id, std::chrono::high_resolution_clock::now() });	
+			delete exOver;
+			break;
+		}
+		case EOperation::E_RECOVERY: {
+			if (clients[exOver->Id].hp > 0) {
+				clients[exOver->Id].hp += 10;
+				if (clients[exOver->Id].hp >= 100)
+					clients[exOver->Id].hp = 100;
+			}
+			if (clients[exOver->Id].status == EStatus::E_ACTIVE) {
+				hpQueue.push(EventType{ exOver->Id, exOver->Id, std::chrono::high_resolution_clock::now() });
+				sendChangeInfoPacket(exOver->Id);
+			}
 			delete exOver;
 			break;
 		}

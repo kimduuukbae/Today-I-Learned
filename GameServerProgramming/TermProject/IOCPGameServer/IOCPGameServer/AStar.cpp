@@ -19,7 +19,7 @@ int cX, int cY, int tX, int tY) {
 	std::unordered_set<int> searchSet{};
 	searchSet.reserve(5000);
 	openList.emplace(cX, cY, false);	//startNode
-	constexpr int gCostPlane{ 50 };
+	constexpr int gCostPlane{ 80 };
 	while (openList.size() > 0) {
 		// 오픈리스트의 첫 번째 노드는 현재노드
 		Node curNode{ openList.top() };

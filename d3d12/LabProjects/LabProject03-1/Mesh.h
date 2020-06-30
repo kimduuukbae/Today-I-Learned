@@ -2,17 +2,17 @@
 
 class CVertex {
 protected:
-	XMFLOAT3 position{};
+	XMFLOAT3 position{};	// 정점의 위치 벡터
 
 public:
 	CVertex() = default;
-	CVertex(const XMFLOAT3& otherPos) { position = otherPos; }
+	CVertex(const XMFLOAT3& otherPos) : position{otherPos} { }
 	~CVertex() = default;
 };
 
-class CDiffusedVertex : public CVertex {
+class CDiffusedVertex : public CVertex {	// 즉 색상이 있는 Vertex
 protected:
-	XMFLOAT4 diffuse{};
+	XMFLOAT4 diffuse{};		// 정점의 Diffuse 색상
 
 public:
 	CDiffusedVertex() = default;
