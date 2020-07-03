@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "GameFramework.h"
+#include "Camera.h"
 
 CGameFramework::CGameFramework() : 
 	m_nWndClientWidth{ FRAME_BUFFER_WIDTH },
@@ -122,15 +123,6 @@ void CGameFramework::CreateDirect3DDevice(){
 
 	m_hFenceEvent = ::CreateEvent(nullptr, false, false, nullptr);
 
-	m_d3dViewport.TopLeftX = 0;
-	m_d3dViewport.TopLeftY = 0;
-	m_d3dViewport.Width = static_cast<float>(m_nWndClientWidth);
-	m_d3dViewport.Height = static_cast<float>(m_nWndClientHeight);
-	m_d3dViewport.MinDepth = 0.0f;
-	m_d3dViewport.MaxDepth = 1.0f;
-
-	m_d3dScissorRect = { 0, 0, m_nWndClientWidth, m_nWndClientHeight };
-
 	if (pd3dAdapter)
 		pd3dAdapter->Release();
 }
@@ -218,6 +210,12 @@ void CGameFramework::CreateDepthStencilView(){
 
 void CGameFramework::BuildObjects(){
 	m_pd3dCommandList->Reset(m_pd3dCommandAllocator.Get(), nullptr);
+
+	m_pCamera = new CCamera();
+	m_pCamera->SetViewport(0, 0, m_nWndClientWidth, m_nWndClientHeight, 0.0f, 1.0f);
+	m_pCamera->SetScissorRect(0, 0, m_nWndClientWidth, m_nWndClientHeight);
+	m_pCamera->GenerateProjectionMatrix(1.0f, 500.0f, float(m_nWndClientWidth) / float(m_nWndClientHeight), 90.0f);
+	m_pCamera->GenerateViewMatrix(XMFLOAT3{ 0.0f, 0.0f, -2.0f }, XMFLOAT3{ 0.0f, 0.0f, 0.0f }, XMFLOAT3{ 0.0f, 1.0f, 0.0f });
 
 	m_pScene = new CScene();
 	m_pScene->BuildObjects(m_pd3dDevice.Get(), m_pd3dCommandList.Get());
@@ -346,9 +344,6 @@ void CGameFramework::FrameAdvance(){
 	HRESULT hResult = m_pd3dCommandAllocator->Reset();
 	hResult = m_pd3dCommandList->Reset(m_pd3dCommandAllocator.Get(), nullptr);
 
-	m_pd3dCommandList->RSSetViewports(1, &m_d3dViewport);
-	m_pd3dCommandList->RSSetScissorRects(1, &m_d3dScissorRect);
-
 	D3D12_RESOURCE_BARRIER d3dResourceBarrier{};
 	d3dResourceBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 	d3dResourceBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
@@ -376,7 +371,7 @@ void CGameFramework::FrameAdvance(){
 		D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
 	//렌더링코드는 여기에
-	m_pScene->Render(m_pd3dCommandList);
+	m_pScene->Render(m_pd3dCommandList, m_pCamera);
 
 	d3dResourceBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
 	d3dResourceBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
@@ -398,23 +393,9 @@ void CGameFramework::FrameAdvance(){
 	m_pdxgiSwapChain->Present1(0, 0, &dxgiPresentParameters);
 	//스왑체인 프리젠트 , 현재 후면버퍼가 전면버퍼로 이동하고, 렌더 타겟 인덱스가 바뀔것
 	m_nSwapChainBufferIndex = m_pdxgiSwapChain->GetCurrentBackBufferIndex();
-	MoveToNextFrame();
 
 	gameTimer.getFrameRate(pszFrameRate + 11, 37);
 	::SetWindowText(m_hWnd, pszFrameRate);
-}
-
-void CGameFramework::MoveToNextFrame()
-{
-	m_nSwapChainBufferIndex = m_pdxgiSwapChain->GetCurrentBackBufferIndex();
-	UINT64 nFenceValue = ++m_nFenceValue;
-	HRESULT hResult = m_pd3dCommandQueue->Signal(m_pd3dFence.Get() , nFenceValue);
-
-	if (m_pd3dFence->GetCompletedValue() < nFenceValue)
-	{
-		hResult = m_pd3dFence->SetEventOnCompletion(nFenceValue, m_hFenceEvent);
-		::WaitForSingleObject(m_hFenceEvent, INFINITE);
-	}
 }
 
 void CGameFramework::WaitForGpuComplete() {

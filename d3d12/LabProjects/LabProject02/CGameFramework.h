@@ -1,5 +1,7 @@
 #pragma once
 
+class CScene;
+
 class CGameFramework
 {
 private:

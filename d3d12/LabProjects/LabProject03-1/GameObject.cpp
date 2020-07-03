@@ -15,8 +15,10 @@ CGameObject::~CGameObject() {
 }
 
 void CGameObject::SetShader(CShader* inShader){
-	if (inShader) 
-		shader = inShader;
+	if (inShader) shader->Release();
+
+	shader = inShader;
+	if (inShader) inShader->AddRef();
 }
 
 void CGameObject::ReleaseUploadBuffers(){

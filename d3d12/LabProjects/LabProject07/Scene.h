@@ -1,7 +1,9 @@
 #pragma once
 #include "Timer.h"
 
-class CShader;
+class CGameObject;
+class CCamera;
+
 class CScene{
 public:
 	CScene();
@@ -13,9 +15,10 @@ public:
 	void BuildObjects(const ComPtr<ID3D12Device>& device, ID3D12GraphicsCommandList* commandList);
 	void ReleaseObjects();
 
+	bool ProcessInput(UCHAR* pKeysBuffer);
 	bool ProcessInput();
 	void AnimateObjects(float fTimeElapsed);
-	void Render(const ComPtr<ID3D12GraphicsCommandList>& pd3dCommandList);
+	void Render(const ComPtr<ID3D12GraphicsCommandList>& pd3dCommandList, CCamera* pCamera);
 
 	ID3D12RootSignature* CreateGraphicsRootSignature(ID3D12Device* device);
 	ID3D12RootSignature* GetGraphicsRootSignature();
@@ -23,8 +26,8 @@ public:
 	void ReleaseUploadBuffers();
 
 protected:
-	CShader** shaders{ nullptr };
-	int shaderCount{};
+	CGameObject** m_ppObjects{ nullptr };
+	int m_nObjects{ 0 };
 
 	ComPtr<ID3D12RootSignature> m_pd3dGraphicsRootSignature;
 	ComPtr<ID3D12PipelineState> m_pd3dPipelineState;

@@ -2,6 +2,8 @@
 #include "Timer.h"
 #include "Scene.h"
 
+class CCamera;
+
 class CGameFramework{
 private:
 	HINSTANCE m_hInstance;
@@ -41,10 +43,6 @@ private:
 	UINT64 m_nFenceValue;
 	HANDLE m_hFenceEvent;
 	// 펜스 포인터, 펜스 값, 이벤트 핸들
-
-	D3D12_VIEWPORT m_d3dViewport;
-	D3D12_RECT m_d3dScissorRect;
-	//뷰포트와 시저 사각형
 
 	CScene* m_pScene;
 
@@ -90,7 +88,8 @@ public:
 
 	void changeSwapChainState();
 
-	void MoveToNextFrame();
+
+	CCamera* m_pCamera{ nullptr };
 	//전체화면모드
 };
 

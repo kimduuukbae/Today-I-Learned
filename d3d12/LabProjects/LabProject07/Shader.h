@@ -1,6 +1,10 @@
 #pragma once
 
 class CGameObject;
+class CCamera;
+struct CB_GAMEOBJECT_INFO {
+	XMFLOAT4X4 worldMatrix{};
+};
 
 class CShader{
 public:
@@ -22,17 +26,12 @@ public:
 
 	virtual void CreateShader(ID3D12Device* device, ID3D12RootSignature* rootSignature);
 	virtual void CreateShaderVariables(ID3D12Device* device, ID3D12CommandList* commandList);
-	virtual void UpdateShaderVariables(ID3D12GraphicsCommandList* commandList);
+	virtual void UpdateShaderVariables(ID3D12GraphicsCommandList* commandList, XMFLOAT4X4* worldMatrix);
 
-	virtual void ReleaseShaderVariables() {}
-	virtual void ReleaseUploadBuffers();
-
-	virtual void BuildObjects(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, void* context = nullptr);
-	virtual void AnimateObjects(float elapsedTime);
-	virtual void ReleaseObjects();
+	virtual void ReleaseShaderVariables();
 
 	virtual void OnPrepareRender(ID3D12GraphicsCommandList* commandList);
-	virtual void Render(ID3D12GraphicsCommandList* commandList);
+	virtual void Render(ID3D12GraphicsCommandList* commandList, CCamera* pCamera);
 
 protected:
 	// 셰이더가 포함하는 게임 객체의 리스트 
@@ -46,3 +45,14 @@ private:
 	int ref{};
 };
 
+class CDiffusedShader : public CShader {
+public:
+	CDiffusedShader();
+	virtual ~CDiffusedShader();
+
+	virtual D3D12_INPUT_LAYOUT_DESC CreateInputLayout() override;
+	virtual D3D12_SHADER_BYTECODE CreateVertexShader(ID3DBlob** shaderBlob) override;
+	virtual D3D12_SHADER_BYTECODE CreatePixelShader(ID3DBlob** shaderBlob) override;
+
+	virtual void CreateShader(ID3D12Device* device, ID3D12RootSignature* rootSignature) override;
+};

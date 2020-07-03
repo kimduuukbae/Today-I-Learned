@@ -17,17 +17,11 @@ CShader::~CShader(){
 }
 
 D3D12_INPUT_LAYOUT_DESC CShader::CreateInputLayout() {
-	UINT inputElementCount{ 2 };
-	D3D12_INPUT_ELEMENT_DESC* inputElementDesc{ new D3D12_INPUT_ELEMENT_DESC[inputElementCount]{} };
-
-	inputElementDesc[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
-	inputElementDesc[1] = { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
-
-	D3D12_INPUT_LAYOUT_DESC inputLayoutDesc{};
-	inputLayoutDesc.pInputElementDescs = inputElementDesc;
-	inputLayoutDesc.NumElements = inputElementCount;
-
-	return inputLayoutDesc;
+	D3D12_INPUT_LAYOUT_DESC inputLayout;
+	inputLayout.NumElements = 0;
+	inputLayout.pInputElementDescs = nullptr;
+	
+	return inputLayout;
 }
 
 D3D12_RASTERIZER_DESC CShader::CreateRasterizerState(){
@@ -89,11 +83,19 @@ D3D12_DEPTH_STENCIL_DESC CShader::CreateDepthStencilState(){
 }
 
 D3D12_SHADER_BYTECODE CShader::CreateVertexShader(ID3DBlob** shaderBlob){
-	return CompileShaderFromFile(L"Shaders.hlsl", "VSMain", "vs_5_1", shaderBlob);
+	D3D12_SHADER_BYTECODE bytecode{};
+	bytecode.BytecodeLength = 0;
+	bytecode.pShaderBytecode = nullptr;
+
+	return bytecode;
 }
 
 D3D12_SHADER_BYTECODE CShader::CreatePixelShader(ID3DBlob** shaderBlob){
-	return CompileShaderFromFile(L"Shaders.hlsl", "PSMain", "ps_5_1", shaderBlob);
+	D3D12_SHADER_BYTECODE bytecode{};
+	bytecode.BytecodeLength = 0;
+	bytecode.pShaderBytecode = nullptr;
+
+	return bytecode;
 }
 
 D3D12_SHADER_BYTECODE CShader::CompileShaderFromFile(const WCHAR* fileName, LPCSTR shaderName, LPCSTR shaderProfile, ID3DBlob** shaderBlob){
@@ -110,9 +112,8 @@ D3D12_SHADER_BYTECODE CShader::CompileShaderFromFile(const WCHAR* fileName, LPCS
 }
 
 void CShader::CreateShader(ID3D12Device* device, ID3D12RootSignature* rootSignature){
-	pipelineStateCount = 1;
-	pipelineStates = new ID3D12PipelineState * [pipelineStateCount];
-	ID3DBlob* vsBlob{ nullptr }, *psBlob{ nullptr };
+
+	ID3DBlob* vsBlob{ nullptr }, * psBlob{ nullptr };
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineStateDesc{};
 	pipelineStateDesc.pRootSignature = rootSignature;
@@ -138,50 +139,58 @@ void CShader::CreateShader(ID3D12Device* device, ID3D12RootSignature* rootSignat
 
 }
 
-void CShader::CreateShaderVariables(ID3D12Device* device, ID3D12CommandList* commandList)
-{
+void CShader::CreateShaderVariables(ID3D12Device* device, ID3D12CommandList* commandList){
+
 }
 
-void CShader::UpdateShaderVariables(ID3D12GraphicsCommandList* commandList)
-{
+void CShader::ReleaseShaderVariables() {
+
 }
 
-void CShader::ReleaseUploadBuffers(){
-	if (objects) {
-		for (int i = 0; i < objectCount; ++i)
-			if (objects[i]) objects[i]->ReleaseUploadBuffers();
-	}
-}
-
-void CShader::BuildObjects(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, void* context){
-	CTriangleMesh* triangleMesh{ new CTriangleMesh{device, commandList} };
-	objectCount = 1;
-	objects = new CGameObject*[objectCount];
-
-	objects[0] = new CGameObject();
-	objects[0]->SetMesh(triangleMesh);
-}
-
-void CShader::AnimateObjects(float elapsedTime){
-	for (int i = 0; i < objectCount; ++i)
-		objects[i]->Animate(elapsedTime);
-}
-
-void CShader::ReleaseObjects(){
-	if (objects) {
-		for (int i = 0; i < objectCount; ++i)
-			if (objects[i]) delete objects[i];
-		delete[] objects;
-	}
+void CShader::UpdateShaderVariables(ID3D12GraphicsCommandList* commandList, XMFLOAT4X4* worldMatrix){
+	XMFLOAT4X4 world{};
+	XMStoreFloat4x4(&world, XMMatrixTranspose(XMLoadFloat4x4(worldMatrix)));
+	commandList->SetGraphicsRoot32BitConstants(0, 16, &world, 0);
 }
 
 void CShader::OnPrepareRender(ID3D12GraphicsCommandList* commandList){
 	commandList->SetPipelineState(pipelineStates[0]);
 }
 
-void CShader::Render(ID3D12GraphicsCommandList* commandList){
+void CShader::Render(ID3D12GraphicsCommandList* commandList, CCamera* pCamera){
 	OnPrepareRender(commandList);
+}
 
-	for (int i = 0; i < objectCount; ++i)
-		if (objects[i]) objects[i]->Render(commandList);
+CDiffusedShader::CDiffusedShader(){
+}
+
+CDiffusedShader::~CDiffusedShader(){
+}
+
+D3D12_INPUT_LAYOUT_DESC CDiffusedShader::CreateInputLayout(){
+	UINT inputElementCount{ 2 };
+	D3D12_INPUT_ELEMENT_DESC* inputElementDesc{ new D3D12_INPUT_ELEMENT_DESC[inputElementCount]{} };
+
+	inputElementDesc[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+	inputElementDesc[1] = { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+
+	D3D12_INPUT_LAYOUT_DESC inputLayoutDesc{};
+	inputLayoutDesc.pInputElementDescs = inputElementDesc;
+	inputLayoutDesc.NumElements = inputElementCount;
+
+	return inputLayoutDesc;
+}
+
+D3D12_SHADER_BYTECODE CDiffusedShader::CreateVertexShader(ID3DBlob** shaderBlob){
+	return CompileShaderFromFile(L"Shaders.hlsl", "VSDiffused", "vs_5_1", shaderBlob);
+}
+
+void CDiffusedShader::CreateShader(ID3D12Device* device, ID3D12RootSignature* rootSignature){
+	pipelineStateCount = 1;
+	pipelineStates = new ID3D12PipelineState * [pipelineStateCount];
+	CShader::CreateShader(device, rootSignature);
+}
+
+D3D12_SHADER_BYTECODE CDiffusedShader::CreatePixelShader(ID3DBlob** shaderBlob){
+	return CompileShaderFromFile(L"Shaders.hlsl", "PSDiffused", "ps_5_1", shaderBlob);
 }

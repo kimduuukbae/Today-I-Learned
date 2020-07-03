@@ -1,6 +1,6 @@
 ﻿#include "stdafx.h"
 #include "GameFramework.h"
-#include "LabProject03-1.h"
+#include "LabProject07.h"
 
 // 타이머와 전체화면모드
 
@@ -12,9 +12,9 @@ CGameFramework gGameFramework;
 
 #define MAX_LOADSTRING 100
 
-HINSTANCE hInst;                                
-WCHAR szTitle[MAX_LOADSTRING];                 
-WCHAR szWindowClass[MAX_LOADSTRING];           
+HINSTANCE hInst;
+WCHAR szTitle[MAX_LOADSTRING];
+WCHAR szWindowClass[MAX_LOADSTRING];
 
 
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -31,7 +31,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(lpCmdLine);
 
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
-    LoadStringW(hInstance, IDC_LABPROJECT031, szWindowClass, MAX_LOADSTRING);
+    LoadStringW(hInstance, IDC_LABPROJECT07, szWindowClass, MAX_LOADSTRING);
     MyRegisterClass(hInstance);
 
     if (!InitInstance(hInstance, nCmdShow))
@@ -39,7 +39,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         return FALSE;
     }
 
-    HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_LABPROJECT031));
+    HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_LABPROJECT07));
 
     MSG msg;
 
@@ -69,7 +69,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     wcex.cbClsExtra = 0;
     wcex.cbWndExtra = 0;
     wcex.hInstance = hInstance;
-    wcex.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_LABPROJECT031));
+    wcex.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_LABPROJECT07));
     wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
     wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
     wcex.lpszMenuName = nullptr;    // 메뉴
@@ -82,7 +82,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
     hInst = hInstance;
-    RECT rc { 0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT };
+    RECT rc{ 0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT };
     DWORD dwStyle{ WS_OVERLAPPED | WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU | WS_BORDER };
     AdjustWindowRect(&rc, dwStyle, false);
 
@@ -95,9 +95,9 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
     ::ShowWindow(hMainWnd, nCmdShow);
     UpdateWindow(hMainWnd);
 
-//#ifdef _WITH_SWAPCHAIN_FULLSCREEN_STATE
-//    gGameFramework.changeSwapChainState();
-//#endif
+    //#ifdef _WITH_SWAPCHAIN_FULLSCREEN_STATE
+    //    gGameFramework.changeSwapChainState();
+    //#endif
     return true;
 }
 
