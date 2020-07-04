@@ -9,7 +9,7 @@ public:
 	CGameObject();
 	virtual ~CGameObject();
 	void AddRef() { ++ref; }
-	void Release() { mesh = nullptr;  if (--ref <= 0) delete this; }
+	void Release() { if (--ref <= 0) delete this; }
 	void ReleaseUploadBuffers();
 	
 	virtual void SetMesh(CMesh* inMesh);
@@ -55,6 +55,10 @@ public:
 
 	void SetRotationSpeed(float fRotationSpeed) { rotationSpeed = fRotationSpeed; }
 	void SetRotatinAxis(const XMFLOAT3& axis) { rotatingAxis = axis; }
+	void SetRotation(float fPitch, float fYaw, float fRoll) {
+		Rotate(fPitch, fYaw, fRoll);
+	}
+
 
 	virtual void Animate(float elapsedTime) override;
 private:

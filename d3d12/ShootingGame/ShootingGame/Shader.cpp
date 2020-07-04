@@ -155,7 +155,6 @@ void CShader::ReleaseShaderVariables() {
 void CShader::UpdateShaderVariables(ID3D12GraphicsCommandList* commandList, XMFLOAT4X4* worldMatrix) {
 	XMFLOAT4X4 world{};
 	XMStoreFloat4x4(&world, XMMatrixTranspose(XMLoadFloat4x4(worldMatrix)));
-	//commandList->SetGraphicsRoot32BitConstants(0, 16, &world, 0);
 }
 
 void CShader::OnPrepareRender(ID3D12GraphicsCommandList* commandList) {
@@ -219,7 +218,8 @@ void CObjectsShader::AnimateObjects(float elapsedTime) {
 
 void CObjectsShader::ReleaseObjects() {
 	for (auto& it : m_ppObjects)
-		delete it;
+		it->Release();
+
 
 	m_ppObjects.clear();
 }
@@ -275,7 +275,7 @@ D3D12_INPUT_LAYOUT_DESC CInstancingShader::CreateInputLayout()
 	UINT nInputElementDescs = 2;
 	D3D12_INPUT_ELEMENT_DESC* pd3dInputElementDescs = new
 		D3D12_INPUT_ELEMENT_DESC[nInputElementDescs];
-	//정점 정보를 위한 입력 원소이다. 
+	
 	pd3dInputElementDescs[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
 	pd3dInputElementDescs[1] = { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
 
@@ -330,22 +330,34 @@ void CInstancingShader::UpdateShaderVariables(ID3D12GraphicsCommandList
 
 void CInstancingShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 	* pd3dCommandList) {
-	int xObjects = 10, yObjects = 10, zObjects = 10, i = 0;
+	float fWidth{ 40.0f }, fHeight{ 40.0f }, fDepth{ 40.0f };
 
-	float fxPitch = 12.0f * 2.5f;
-	float fyPitch = 12.0f * 2.5f;
-	float fzPitch = 12.0f * 2.5f;
-	
-	for (int x = -xObjects; x <= xObjects; x++)
-	{
-		for (int y = -yObjects; y <= yObjects; y++)
-		{
-				CRotatingObject* pRotatingObject{ new CRotatingObject };
-				
-				pRotatingObject->SetPosition(24.0f * x, 6.0f * y, 0.0f);
-				m_ppObjects.push_back(pRotatingObject);
+
+	CRotatingObject* pRotatingObject{};
+	for (int i = -5; i < 5; ++i)
+		for (int j = -20; j < 20; ++j){
+
+			pRotatingObject = new CRotatingObject;
+			pRotatingObject->SetPosition(XMFLOAT3(fWidth * i, fHeight * 5.0f, fDepth * j));
+			pRotatingObject->SetRotationSpeed(0.0f);
+			m_ppObjects.push_back(pRotatingObject);
+			
+			pRotatingObject = new CRotatingObject;
+			pRotatingObject->SetPosition(XMFLOAT3(fWidth * i, fHeight * -5.0f, fDepth * j));
+			pRotatingObject->SetRotationSpeed(0.0f);
+			m_ppObjects.push_back(pRotatingObject);
+
+			pRotatingObject = new CRotatingObject;
+			pRotatingObject->SetPosition(XMFLOAT3(fWidth * 5.0f, fHeight * i, fDepth * j));
+			pRotatingObject->SetRotationSpeed(0.0f);
+			m_ppObjects.push_back(pRotatingObject);
+
+			pRotatingObject = new CRotatingObject;
+			pRotatingObject->SetPosition(XMFLOAT3(fWidth * -5.0f, fHeight * i, fDepth * j));
+			pRotatingObject->SetRotationSpeed(0.0f);
+			m_ppObjects.push_back(pRotatingObject);
 		}
-	}
+
 	//인스턴싱을 사용하여 렌더링하기 위하여 하나의 게임 객체만 메쉬를 가진다. 
 	CCubeMeshDiffused* pCubeMesh = new CCubeMeshDiffused(pd3dDevice, pd3dCommandList,
 		24.0f, 6.0f, 6.0f);
@@ -365,7 +377,7 @@ void CInstancingShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCame
 	//모든 게임 객체의 인스턴싱 데이터를 버퍼에 저장한다.
 	UpdateShaderVariables(pd3dCommandList);
 	//하나의 정점 데이터를 사용하여 모든 게임 객체(인스턴스)들을 렌더링한다. 
-	//m_ppObjects.front()->Render(pd3dCommandList, pCamera, m_ppObjects.size());
+	m_ppObjects.front()->Render(pd3dCommandList, pCamera, m_ppObjects.size());
 }
 
 
@@ -374,7 +386,8 @@ CBulletShader::CBulletShader() {
 }
 
 CBulletShader::~CBulletShader() {
-
+	if(bulletMesh)
+		bulletMesh->Release();
 }
 
 D3D12_INPUT_LAYOUT_DESC CBulletShader::CreateInputLayout()
@@ -382,7 +395,7 @@ D3D12_INPUT_LAYOUT_DESC CBulletShader::CreateInputLayout()
 	UINT nInputElementDescs = 2;
 	D3D12_INPUT_ELEMENT_DESC* pd3dInputElementDescs = new
 		D3D12_INPUT_ELEMENT_DESC[nInputElementDescs];
-	//정점 정보를 위한 입력 원소이다. 
+	
 	pd3dInputElementDescs[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
 	pd3dInputElementDescs[1] = { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
 
@@ -436,6 +449,7 @@ void CBulletShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 	* pd3dCommandList) {
 	bulletMesh = new CCubeMeshDiffused(pd3dDevice, pd3dCommandList,
 		2.0f, 2.0f, 2.0f);
+	bulletMesh->AddRef();
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 }
 
@@ -448,17 +462,17 @@ void CBulletShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera
 	* pCamera) {
 	CObjectsShader::Render(pd3dCommandList, pCamera);
 	UpdateShaderVariables(pd3dCommandList);
-	if(m_ppObjects.size())
+	if (m_ppObjects.size())
 		m_ppObjects.front()->Render(pd3dCommandList, pCamera, m_ppObjects.size());
 }
 
-void CBulletShader::AnimateObjects(float elapsedTime){
+void CBulletShader::AnimateObjects(float elapsedTime) {
 	auto end = m_ppObjects.end();
 	for (auto it = m_ppObjects.begin(); it != end;) {
 		CBullet* b{ reinterpret_cast<CBullet*>(*it) };
 		b->Animate(elapsedTime);
-		if (Vector3::Length(Vector3::Subtract(b->oldPos, XMFLOAT3{ b->worldMatrix._41, b->worldMatrix._42, b->worldMatrix._43 }))
-		> 200.0f) {
+		if (!b->GetLive() || Vector3::Length(Vector3::Subtract(b->oldPos, XMFLOAT3{ b->worldMatrix._41, b->worldMatrix._42, b->worldMatrix._43 }))
+		> 400.0f) {
 			b->Release();
 			it = m_ppObjects.erase(it);
 		}
@@ -468,7 +482,7 @@ void CBulletShader::AnimateObjects(float elapsedTime){
 }
 
 void CBulletShader::addBullet(const XMFLOAT3& playerPos, const XMFLOAT4X4& world
-	, CGameObject* pickingTarget){
+	, CGameObject* pickingTarget) {
 	if (m_ppObjects.size() < maxBulletCount) {
 		CBullet* bullet{ new CBullet{} };
 		bullet->SetMesh(bulletMesh);
@@ -476,6 +490,7 @@ void CBulletShader::addBullet(const XMFLOAT3& playerPos, const XMFLOAT4X4& world
 		bullet->worldMatrix = world;
 		bullet->oldPos = XMFLOAT3{ world._41, world._42, world._43 };
 		bullet->setTarget(pickingTarget);
+		
 		m_ppObjects.push_back(bullet);
 	}
 }

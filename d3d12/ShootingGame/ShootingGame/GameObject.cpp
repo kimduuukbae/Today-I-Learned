@@ -8,7 +8,8 @@ CGameObject::CGameObject() {
 }
 
 CGameObject::~CGameObject() {
-	if (mesh) mesh->Release();
+	if (mesh) 
+		mesh->Release();
 	if (shader) {
 		shader->ReleaseShaderVariables();
 		shader->Release();
@@ -24,8 +25,11 @@ void CGameObject::ReleaseUploadBuffers(){
 }
 
 void CGameObject::SetMesh(CMesh* inMesh) {
-	if (inMesh)
+	if (inMesh) {
 		mesh = inMesh;
+		mesh->AddRef();
+	}
+		
 }
 void CGameObject::Animate(float elapsedTime) {
 

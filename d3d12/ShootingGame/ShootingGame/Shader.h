@@ -124,6 +124,10 @@ public:
 
 	virtual void AnimateObjects(float elapsedTime) override;
 	void addBullet(const XMFLOAT3& playerPos, const XMFLOAT4X4& world, CGameObject* pickingTarget = nullptr);
+
+	std::list<CGameObject*>& GetBulletList() {
+		return m_ppObjects;
+	}
 protected:
 	
 	ID3D12Resource* m_pd3dcbGameObjects = NULL;

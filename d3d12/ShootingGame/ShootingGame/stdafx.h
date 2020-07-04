@@ -24,6 +24,7 @@
 #include <DirectXCollision.h>
 #include <list>
 #include <vector>
+#include <algorithm>
 #include <dxgidebug.h>
 
 using namespace DirectX;

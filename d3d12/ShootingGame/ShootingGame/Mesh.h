@@ -36,7 +36,10 @@ public:
 	CMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	virtual ~CMesh();
 	void AddRef() { ++ref; }
-	void Release() { if (--ref <= 0) delete this; }
+	void Release() { 
+		if (--ref <= 0) 
+			delete this;
+	}
 	void ReleaseUploadBuffers();
 	virtual void Render(ID3D12GraphicsCommandList* commandList, UINT nInstances = 1);
 protected:
@@ -61,7 +64,7 @@ protected:
 	UINT startIndex{};
 	UINT baseVertex{};
 private:
-	int	ref{};
+	int	ref{ 0 };
 };
 
 class CTriangleMesh : public CMesh {

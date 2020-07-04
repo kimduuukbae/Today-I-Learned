@@ -104,14 +104,11 @@ CThirdPersonCamera::CThirdPersonCamera(CCamera* pCamera) : CCamera(pCamera) {
 	m_xmf3Look.y = 0.0f;
 	m_xmf3Right = Vector3::Normalize(m_xmf3Right);
 	m_xmf3Look = Vector3::Normalize(m_xmf3Look);
-
 }
 
-void CThirdPersonCamera::Update(XMFLOAT3& xmf3LookAt, float fTimeElapsed)
-{
+void CThirdPersonCamera::Update(XMFLOAT3& xmf3LookAt, float fTimeElapsed){
 	//플레이어가 있으면 플레이어의 회전에 따라 3인칭 카메라도 회전해야 한다. 
-	if (m_pPlayer)
-	{
+	if (m_pPlayer){
 		XMFLOAT4X4 xmf4x4Rotate{ Matrix4x4::Identity() };
 		XMFLOAT3 xmf3Right{ m_pPlayer->GetRightVector() };
 		XMFLOAT3 xmf3Up{ m_pPlayer->GetUpVector() };

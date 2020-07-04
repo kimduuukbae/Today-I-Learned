@@ -12,8 +12,7 @@
 
 class CCamera;
 
-class CPlayer : public CGameObject
-{
+class CPlayer : public CGameObject{
 protected:
 	//플레이어의 위치 벡터, x-축(Right), y-축(Up), z-축(Look) 벡터이다. 
 	XMFLOAT3 m_xmf3Position{};
@@ -116,6 +115,10 @@ public:
 	void ShootBullet();
 	void SetPickingTarget(CGameObject* target) {
 		pickingTarget = target;
+	}
+
+	std::list<CGameObject*>& GetBulletList() {
+		return bulletShader->GetBulletList();
 	}
 private:
 	CBulletShader* bulletShader{ nullptr };

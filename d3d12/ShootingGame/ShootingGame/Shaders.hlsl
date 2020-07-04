@@ -58,7 +58,7 @@ VS_INSTANCING_OUTPUT VSInstancing(VS_INSTANCING_INPUT input, uint nInstanceID : 
 	VS_INSTANCING_OUTPUT output;
 	output.position = mul(mul(mul(float4(input.position, 1.0f),
 		gGameObjectInfos[nInstanceID].m_mtxGameObject), gmtxView), gmtxProjection);
-	output.color = input.color + gGameObjectInfos[nInstanceID].m_cColor;
+	output.color = gGameObjectInfos[nInstanceID].m_cColor;
 	return output;
 }
 

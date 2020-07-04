@@ -5,6 +5,9 @@
 #include "Shader.h"
 #include "EnemyBox.h"
 #include "Camera.h"
+#include "Player.h"
+#include "Bullet.h"
+#include <iostream>
 
 CScene::CScene() {}
 
@@ -53,6 +56,23 @@ void CScene::Render(const ComPtr<ID3D12GraphicsCommandList>& pd3dCommandList, CC
 
 	for (auto& it : m_pShaders)
 		it->Render(pd3dCommandList.Get(), pCamera);
+}
+
+void CScene::ProcessCollision(CAirplanePlayer* player){
+
+	CEnemyBoxShader* shader{
+		reinterpret_cast<CEnemyBoxShader*>(m_pShaders[1]) };
+	
+	for (auto& bullet : player->GetBulletList()) {
+		for (auto& box : shader->GetGameObject()) {
+			CEnemyBox* enemy{ reinterpret_cast<CEnemyBox*>(box) };
+			CBullet* bul{ reinterpret_cast<CBullet*>(bullet) };
+			if (enemy->isCollision(bul->GetBoundingBox())) {
+				enemy->SetLive(false);
+				bul->SetLive(false);
+			}
+		}
+	}
 }
 
 ID3D12RootSignature* CScene::CreateGraphicsRootSignature(ID3D12Device* device) {
