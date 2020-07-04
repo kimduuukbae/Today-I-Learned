@@ -23,7 +23,7 @@
 
 #include <DirectXCollision.h>
 #include <list>
-
+#include <vector>
 #include <dxgidebug.h>
 
 using namespace DirectX;
@@ -190,7 +190,7 @@ namespace Matrix4x4
 		return(xmmtx4x4Result);
 	}
 
-	inline XMFLOAT4X4 Inverse(XMFLOAT4X4& xmmtx4x4Matrix){
+	inline XMFLOAT4X4 Inverse(const XMFLOAT4X4& xmmtx4x4Matrix){
 		XMFLOAT4X4 xmmtx4x4Result;
 		XMStoreFloat4x4(&xmmtx4x4Result, XMMatrixInverse(NULL,
 			XMLoadFloat4x4(&xmmtx4x4Matrix)));
@@ -221,3 +221,5 @@ namespace Matrix4x4
 }
 
 #define RANDOM_COLOR XMFLOAT4(rand() / float(RAND_MAX), rand() / float(RAND_MAX), rand() / float(RAND_MAX), rand() / float(RAND_MAX))
+#define RANDOM_POS XMFLOAT3(rand() / float(RAND_MAX), rand() / float(RAND_MAX), rand() / float(RAND_MAX))
+#define RANDOM_F(x) float(rand()) / float((RAND_MAX) * x)

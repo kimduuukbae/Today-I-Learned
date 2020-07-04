@@ -228,5 +228,6 @@ void CAirplanePlayer::Update(float fTimeElapsed){
 }
 
 void CAirplanePlayer::ShootBullet(){
-	bulletShader->addBullet(GetPosition(), worldMatrix);
+	bulletShader->addBullet(GetPosition(), worldMatrix, pickingTarget);
+	pickingTarget = nullptr;
 }

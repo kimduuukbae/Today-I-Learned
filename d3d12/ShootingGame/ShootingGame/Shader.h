@@ -11,6 +11,7 @@ struct VS_VB_INSTANCE {
 	XMFLOAT4X4 transform{};
 	XMFLOAT4 color{};
 };
+
 class CShader{
 public:
 	CShader();
@@ -122,7 +123,7 @@ public:
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
 
 	virtual void AnimateObjects(float elapsedTime) override;
-	void addBullet(const XMFLOAT3& playerPos, const XMFLOAT4X4& world);
+	void addBullet(const XMFLOAT3& playerPos, const XMFLOAT4X4& world, CGameObject* pickingTarget = nullptr);
 protected:
 	
 	ID3D12Resource* m_pd3dcbGameObjects = NULL;

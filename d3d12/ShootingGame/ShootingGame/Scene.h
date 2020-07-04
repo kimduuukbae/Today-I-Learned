@@ -26,12 +26,12 @@ public:
 
 	void ReleaseUploadBuffers();
 
+	CGameObject* pickingObjects(const XMFLOAT3& rayDirOrigin, const XMFLOAT3& rayDir);
 protected:
 	ComPtr<ID3D12RootSignature> m_pd3dGraphicsRootSignature;
 	ComPtr<ID3D12PipelineState> m_pd3dPipelineState;
 
 	//CObjectsShader* m_pShaders{ nullptr };
-	CInstancingShader* m_pShaders{ nullptr };
-	int m_nShaders{};
+	std::vector<CInstancingShader*> m_pShaders{};
 };
 

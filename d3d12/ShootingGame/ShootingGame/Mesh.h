@@ -25,6 +25,10 @@ public:
 		diffuse = otherColor;
 	}
 	~CDiffusedVertex() = default;
+
+	void SetColor(const XMFLOAT4& otherColor) {
+		diffuse = otherColor;
+	}
 };
 
 class CMesh{
@@ -34,7 +38,6 @@ public:
 	void AddRef() { ++ref; }
 	void Release() { if (--ref <= 0) delete this; }
 	void ReleaseUploadBuffers();
-	//virtual void Render(ID3D12GraphicsCommandList* commandList);
 	virtual void Render(ID3D12GraphicsCommandList* commandList, UINT nInstances = 1);
 protected:
 
@@ -70,7 +73,9 @@ public:
 class CCubeMeshDiffused : public CMesh {
 public:
 	CCubeMeshDiffused(ID3D12Device* device, ID3D12GraphicsCommandList* commandList,
-		float fWidth = 2.0f, float fHeight = 2.0f, float fDepth = 2.0f);
+		float fWidth = 2.0f, float fHeight = 2.0f, float fDepth = 2.0f,
+		const XMFLOAT4& color = XMFLOAT4{ -1.0f, -1.0f, -1.0f, -1.0f });
+	
 	virtual ~CCubeMeshDiffused();
 };
 

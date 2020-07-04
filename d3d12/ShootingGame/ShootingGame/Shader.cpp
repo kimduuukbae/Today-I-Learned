@@ -340,21 +340,15 @@ void CInstancingShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCom
 	{
 		for (int y = -yObjects; y <= yObjects; y++)
 		{
-			for (int z = -zObjects; z <= zObjects; z++)
-			{
 				CRotatingObject* pRotatingObject{ new CRotatingObject };
 				
-				pRotatingObject->SetPosition(fxPitch * x, fyPitch * y, fzPitch * z);
-				pRotatingObject->SetRotatinAxis(XMFLOAT3(0.0f, 1.0f, 0.0f));
-				pRotatingObject->SetRotationSpeed(10.0f * (i++ % 10));
+				pRotatingObject->SetPosition(24.0f * x, 6.0f * y, 0.0f);
 				m_ppObjects.push_back(pRotatingObject);
-
-			}
 		}
 	}
 	//인스턴싱을 사용하여 렌더링하기 위하여 하나의 게임 객체만 메쉬를 가진다. 
 	CCubeMeshDiffused* pCubeMesh = new CCubeMeshDiffused(pd3dDevice, pd3dCommandList,
-		12.0f, 12.0f, 12.0f);
+		24.0f, 6.0f, 6.0f);
 	m_ppObjects.front()->SetMesh(pCubeMesh);
 	//인스턴싱을 위한 버퍼(Structured Buffer)를 생성한다. 
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
@@ -371,7 +365,7 @@ void CInstancingShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCame
 	//모든 게임 객체의 인스턴싱 데이터를 버퍼에 저장한다.
 	UpdateShaderVariables(pd3dCommandList);
 	//하나의 정점 데이터를 사용하여 모든 게임 객체(인스턴스)들을 렌더링한다. 
-	m_ppObjects.front()->Render(pd3dCommandList, pCamera, m_ppObjects.size());
+	//m_ppObjects.front()->Render(pd3dCommandList, pCamera, m_ppObjects.size());
 }
 
 
@@ -473,13 +467,15 @@ void CBulletShader::AnimateObjects(float elapsedTime){
 	}
 }
 
-void CBulletShader::addBullet(const XMFLOAT3& playerPos, const XMFLOAT4X4& world){
+void CBulletShader::addBullet(const XMFLOAT3& playerPos, const XMFLOAT4X4& world
+	, CGameObject* pickingTarget){
 	if (m_ppObjects.size() < maxBulletCount) {
 		CBullet* bullet{ new CBullet{} };
 		bullet->SetMesh(bulletMesh);
 		bullet->SetPosition(playerPos);
 		bullet->worldMatrix = world;
 		bullet->oldPos = XMFLOAT3{ world._41, world._42, world._43 };
+		bullet->setTarget(pickingTarget);
 		m_ppObjects.push_back(bullet);
 	}
 }

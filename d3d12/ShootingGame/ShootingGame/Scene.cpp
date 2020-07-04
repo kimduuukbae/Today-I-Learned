@@ -3,6 +3,7 @@
 #include "GameObject.h"
 #include "Mesh.h"
 #include "Shader.h"
+#include "EnemyBox.h"
 #include "Camera.h"
 
 CScene::CScene() {}
@@ -12,21 +13,24 @@ CScene::~CScene() {}
 void CScene::BuildObjects(const ComPtr<ID3D12Device>& device, ID3D12GraphicsCommandList* commandList) {
 	m_pd3dGraphicsRootSignature = CreateGraphicsRootSignature(device.Get());
 
-	m_nShaders = 1;
-	m_pShaders = new CInstancingShader[m_nShaders];
-	m_pShaders[0].CreateShader(device.Get(), m_pd3dGraphicsRootSignature.Get());
-	m_pShaders[0].BuildObjects(device.Get(), commandList);
+	CInstancingShader* shader{ new CInstancingShader{} };
+	shader->CreateShader(device.Get(), m_pd3dGraphicsRootSignature.Get());
+	shader->BuildObjects(device.Get(), commandList);
+	m_pShaders.push_back(shader);
+	shader = new CEnemyBoxShader{};
+	shader->CreateShader(device.Get(), m_pd3dGraphicsRootSignature.Get());
+	shader->BuildObjects(device.Get(), commandList);
+	m_pShaders.push_back(shader);
 }
 
 void CScene::ReleaseObjects() {
 	if (m_pd3dGraphicsRootSignature) m_pd3dGraphicsRootSignature->Release();
-	if (m_pShaders) {
-		for (int i = 0; i < m_nShaders; ++i) {
-			m_pShaders[i].ReleaseShaderVariables();
-			m_pShaders[i].ReleaseObjects();
-		}
-		delete[] m_pShaders;
+	for (auto& it : m_pShaders) {
+		it->ReleaseShaderVariables();
+		it->ReleaseObjects();
+		delete it;
 	}
+	m_pShaders.clear();
 }
 
 bool CScene::ProcessInput(UCHAR* pKeysBuffer) {
@@ -37,8 +41,8 @@ bool CScene::ProcessInput() {
 }
 
 void CScene::AnimateObjects(float fTimeElapsed) {
-	for (int i = 0; i < m_nShaders; ++i)
-		m_pShaders[i].AnimateObjects(fTimeElapsed);
+	for (auto& it : m_pShaders)
+		it->AnimateObjects(fTimeElapsed);
 }
 
 void CScene::Render(const ComPtr<ID3D12GraphicsCommandList>& pd3dCommandList, CCamera* pCamera) {
@@ -46,9 +50,9 @@ void CScene::Render(const ComPtr<ID3D12GraphicsCommandList>& pd3dCommandList, CC
 	pd3dCommandList->SetGraphicsRootSignature(m_pd3dGraphicsRootSignature.Get());
 
 	if (pCamera) pCamera->UpdateShaderVariables(pd3dCommandList.Get());
-	for (int i = 0; i < m_nShaders; ++i)
-		m_pShaders[i].Render(pd3dCommandList.Get(), pCamera);
 
+	for (auto& it : m_pShaders)
+		it->Render(pd3dCommandList.Get(), pCamera);
 }
 
 ID3D12RootSignature* CScene::CreateGraphicsRootSignature(ID3D12Device* device) {
@@ -102,8 +106,13 @@ ID3D12RootSignature* CScene::GetGraphicsRootSignature() {
 }
 
 void CScene::ReleaseUploadBuffers() {
-	for (int i = 0; i < m_nShaders; ++i)
-		m_pShaders[i].ReleaseUploadBuffers();
+	for (auto& it : m_pShaders)
+		it->ReleaseUploadBuffers();
+}
+
+CGameObject* CScene::pickingObjects(const XMFLOAT3& rayDirOrigin, const XMFLOAT3& rayDir){
+	CEnemyBoxShader* boxShader{ reinterpret_cast<CEnemyBoxShader*>(m_pShaders[1]) };
+	return boxShader->IsPickingObject(rayDirOrigin, rayDir);
 }
 
 bool CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam) {

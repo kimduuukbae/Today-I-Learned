@@ -117,6 +117,6 @@ CRotatingObject::~CRotatingObject(){
 }
 
 void CRotatingObject::Animate(float elapsedTime){
-	//CGameObject::Rotate(&rotatingAxis, rotationSpeed * elapsedTime);
+	CGameObject::Rotate(&rotatingAxis, rotationSpeed * elapsedTime);
 }
 

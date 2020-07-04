@@ -359,15 +359,36 @@ void CGameFramework::ProcessInput()
 	레이어를 x-축 또는 y-축으로 회전한다.*/
 	if (::GetCapture() == m_hWnd)
 	{
-		//마우스 커서를 화면에서 없앤다(보이지 않게 한다).
 		::SetCursor(NULL);
-		//현재 마우스 커서의 위치를 가져온다. 
 		::GetCursorPos(&ptCursorPos);
-		//마우스 버튼이 눌린 상태에서 마우스가 움직인 양을 구한다. 
 		cxDelta = (float)(ptCursorPos.x - m_ptOldCursorPos.x) / 3.0f;
 		cyDelta = (float)(ptCursorPos.y - m_ptOldCursorPos.y) / 3.0f;
-		//마우스 커서의 위치를 마우스가 눌려졌던 위치로 설정한다. 
 		::SetCursorPos(m_ptOldCursorPos.x, m_ptOldCursorPos.y);
+
+		if (pKeyBuffer[VK_RBUTTON] & 0xF0) {
+			POINT ptPickingPos{ ptCursorPos };
+			ScreenToClient(m_hWnd, &ptPickingPos);
+
+			float xProjectPos{ 2.0f * ptPickingPos.x / (float)FRAME_BUFFER_WIDTH - 1.0f };
+			float yProjectPos{ -2.0f * ptPickingPos.y / (float)FRAME_BUFFER_HEIGHT + 1.0f };
+
+			XMFLOAT4X4 project{ m_pCamera->GetProjectionMatrix() };
+			float xCamPos{ xProjectPos / project._11 };
+			float yCamPos{ yProjectPos / project._22 };
+			float zCamPos{ 1.0f };
+
+			XMFLOAT4X4 viewInverse{ Matrix4x4::Inverse(m_pCamera->GetViewMatrix()) };
+
+			XMFLOAT3 rayDir{ xCamPos, yCamPos, zCamPos }, rayDirOrigin{};
+			XMStoreFloat3(&rayDirOrigin,
+				XMVector3TransformCoord(XMLoadFloat3(&rayDirOrigin), XMLoadFloat4x4(&viewInverse)));
+			XMStoreFloat3(&rayDir,
+				XMVector3TransformNormal(XMLoadFloat3(&rayDir), XMLoadFloat4x4(&viewInverse)));
+			rayDir = Vector3::Normalize(rayDir);
+			if (auto ptr{ m_pScene->pickingObjects(rayDirOrigin, rayDir) }; ptr) {
+				reinterpret_cast<CAirplanePlayer*>(m_pPlayer)->SetPickingTarget(ptr);
+			}
+		}
 	}
 
 	//마우스 또는 키 입력이 있으면 플레이어를 이동하거나(dwDirection) 회전한다(cxDelta 또는 cyDelta).
@@ -456,7 +477,7 @@ void CGameFramework::FrameAdvance(){
 	dxgiPresentParameters.pDirtyRects = nullptr;
 	dxgiPresentParameters.pScrollRect = nullptr;
 	dxgiPresentParameters.pScrollOffset = nullptr;
-	m_pdxgiSwapChain->Present1(0, 0, &dxgiPresentParameters);
+	m_pdxgiSwapChain->Present1(1, 0, &dxgiPresentParameters);
 	//스왑체인 프리젠트 , 현재 후면버퍼가 전면버퍼로 이동하고, 렌더 타겟 인덱스가 바뀔것
 	m_nSwapChainBufferIndex = m_pdxgiSwapChain->GetCurrentBackBufferIndex();
 

@@ -114,6 +114,10 @@ public:
 	virtual void Update(float fTimeElapsed) override;
 
 	void ShootBullet();
+	void SetPickingTarget(CGameObject* target) {
+		pickingTarget = target;
+	}
 private:
 	CBulletShader* bulletShader{ nullptr };
+	CGameObject* pickingTarget{ nullptr };
 };

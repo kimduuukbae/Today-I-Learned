@@ -59,7 +59,8 @@ CTriangleMesh::CTriangleMesh(ID3D12Device* device, ID3D12GraphicsCommandList* co
 	vertexBufferView.SizeInBytes = stride * vertices;
 }
 
-CCubeMeshDiffused::CCubeMeshDiffused(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, float fWidth, float fHeight, float fDepth)
+CCubeMeshDiffused::CCubeMeshDiffused(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, 
+	float fWidth, float fHeight, float fDepth, const XMFLOAT4& color)
 : CMesh(device, commandList) {
 
 	vertices = 8;
@@ -68,14 +69,26 @@ CCubeMeshDiffused::CCubeMeshDiffused(ID3D12Device* device, ID3D12GraphicsCommand
 	float fx = fWidth * 0.5f, fy = fHeight * 0.5f, fz = fDepth * 0.5f;
 
 	CDiffusedVertex pVertices[8];
-	pVertices[0] = CDiffusedVertex(XMFLOAT3(-fx, +fy, -fz), XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
-	pVertices[1] = CDiffusedVertex(XMFLOAT3(+fx, +fy, -fz), RANDOM_COLOR);
-	pVertices[2] = CDiffusedVertex(XMFLOAT3(+fx, +fy, +fz), RANDOM_COLOR);
-	pVertices[3] = CDiffusedVertex(XMFLOAT3(-fx, +fy, +fz), RANDOM_COLOR);
-	pVertices[4] = CDiffusedVertex(XMFLOAT3(-fx, -fy, -fz), RANDOM_COLOR);
-	pVertices[5] = CDiffusedVertex(XMFLOAT3(+fx, -fy, -fz), RANDOM_COLOR);
-	pVertices[6] = CDiffusedVertex(XMFLOAT3(+fx, -fy, +fz), RANDOM_COLOR);
-	pVertices[7] = CDiffusedVertex(XMFLOAT3(-fx, -fy, +fz), RANDOM_COLOR);
+	if (color.x < -0.1f) {
+		pVertices[0] = CDiffusedVertex(XMFLOAT3(-fx, +fy, -fz), XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
+		pVertices[1] = CDiffusedVertex(XMFLOAT3(+fx, +fy, -fz), RANDOM_COLOR);
+		pVertices[2] = CDiffusedVertex(XMFLOAT3(+fx, +fy, +fz), RANDOM_COLOR);
+		pVertices[3] = CDiffusedVertex(XMFLOAT3(-fx, +fy, +fz), RANDOM_COLOR);
+		pVertices[4] = CDiffusedVertex(XMFLOAT3(-fx, -fy, -fz), RANDOM_COLOR);
+		pVertices[5] = CDiffusedVertex(XMFLOAT3(+fx, -fy, -fz), RANDOM_COLOR);
+		pVertices[6] = CDiffusedVertex(XMFLOAT3(+fx, -fy, +fz), RANDOM_COLOR);
+		pVertices[7] = CDiffusedVertex(XMFLOAT3(-fx, -fy, +fz), RANDOM_COLOR);
+	}
+	else {
+		pVertices[0] = CDiffusedVertex(XMFLOAT3(-fx, +fy, -fz), color);
+		pVertices[1] = CDiffusedVertex(XMFLOAT3(+fx, +fy, -fz), color);
+		pVertices[2] = CDiffusedVertex(XMFLOAT3(+fx, +fy, +fz), color);
+		pVertices[3] = CDiffusedVertex(XMFLOAT3(-fx, +fy, +fz), color);
+		pVertices[4] = CDiffusedVertex(XMFLOAT3(-fx, -fy, -fz), color);
+		pVertices[5] = CDiffusedVertex(XMFLOAT3(+fx, -fy, -fz), color);
+		pVertices[6] = CDiffusedVertex(XMFLOAT3(+fx, -fy, +fz), color);
+		pVertices[7] = CDiffusedVertex(XMFLOAT3(-fx, -fy, +fz), color);
+	}
 
 	vertexBuffer = ::CreateBufferResource(device, commandList, pVertices,
 		stride * vertices, D3D12_HEAP_TYPE_DEFAULT,
