@@ -264,12 +264,14 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 		case VK_F1:
 		case VK_F2:
 		case VK_F3:
-			if (m_pPlayer) m_pCamera = m_pPlayer->ChangeCamera((wParam - VK_F1 + 1), gameTimer.getElapsedTime());
 			break;
 		case VK_F8:
 			break;
 		case VK_F9:
 			changeSwapChainState();
+			break;
+		case VK_CONTROL:
+			dynamic_cast<CAirplanePlayer*>(m_pPlayer)->ShootBullet();
 			break;
 		default:
 			break;

@@ -9,7 +9,7 @@ public:
 	CGameObject();
 	virtual ~CGameObject();
 	void AddRef() { ++ref; }
-	void Release( ) { if (--ref <= 0) delete this; }
+	void Release() { mesh = nullptr;  if (--ref <= 0) delete this; }
 	void ReleaseUploadBuffers();
 	
 	virtual void SetMesh(CMesh* inMesh);

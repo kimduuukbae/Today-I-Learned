@@ -22,6 +22,7 @@
 #include <DirectXColors.h>
 
 #include <DirectXCollision.h>
+#include <list>
 
 #include <dxgidebug.h>
 

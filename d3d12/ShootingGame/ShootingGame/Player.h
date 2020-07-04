@@ -8,6 +8,7 @@
 #define DIR_DOWN 0x20
 
 #include "GameObject.h"
+#include "Shader.h"
 
 class CCamera;
 
@@ -79,7 +80,7 @@ public:
 	//플레이어를 회전하는 함수이다. 
 	void Rotate(float x, float y, float z);
 	//플레이어의 위치와 회전 정보를 경과 시간에 따라 갱신하는 함수이다. 
-	void Update(float fTimeElapsed);
+	virtual void Update(float fTimeElapsed);
 
 	//플레이어의 위치가 바뀔 때마다 호출되는 함수와 그 함수에서 사용하는 정보를 설정하는 함수이다.
 	virtual void OnPlayerUpdateCallback(float fTimeElapsed) { }
@@ -93,7 +94,6 @@ public:
 	virtual void UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList);
 
 	//카메라를 변경하기 위하여 호출하는 함수이다. 
-	CCamera* OnChangeCamera(DWORD nNewCameraMode, DWORD nCurrentCameraMode);
 	virtual CCamera* ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed) { return nullptr; }
 
 	//플레이어의 위치와 회전축으로부터 월드 변환 행렬을 생성하는 함수이다. 
@@ -103,13 +103,17 @@ public:
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera = nullptr);
 };
 
-class CAirplanePlayer : public CPlayer
-{
+class CAirplanePlayer : public CPlayer{
 public:
 	CAirplanePlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,
 		ID3D12RootSignature* pd3dGraphicsRootSignature);
 	virtual ~CAirplanePlayer();
 
-	virtual CCamera* ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed);
 	virtual void OnPrepareRender();
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera = nullptr) override;
+	virtual void Update(float fTimeElapsed) override;
+
+	void ShootBullet();
+private:
+	CBulletShader* bulletShader{ nullptr };
 };

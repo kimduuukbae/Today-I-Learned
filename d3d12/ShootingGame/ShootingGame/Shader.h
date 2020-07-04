@@ -2,6 +2,8 @@
 
 class CGameObject;
 class CCamera;
+class CCubeMeshDiffused;
+
 struct CB_GAMEOBJECT_INFO {
 	XMFLOAT4X4 worldMatrix{};
 };
@@ -18,7 +20,7 @@ public:
 	void Release() { if (--ref <= 0) delete this; }
 
 	virtual D3D12_INPUT_LAYOUT_DESC CreateInputLayout();
-	virtual D3D12_RASTERIZER_DESC CreateRasterizerState();
+	virtual D3D12_RASTERIZER_DESC CreateRasterizerState(bool bDrawMode);
 	virtual D3D12_BLEND_DESC CreateBlendState();
 	virtual D3D12_DEPTH_STENCIL_DESC CreateDepthStencilState();
 
@@ -27,7 +29,7 @@ public:
 	
 	D3D12_SHADER_BYTECODE CompileShaderFromFile(const WCHAR* fileName, LPCSTR shaderName, LPCSTR shaderProfile, ID3DBlob** shaderBlob);
 
-	virtual void CreateShader(ID3D12Device* device, ID3D12RootSignature* rootSignature);
+	virtual void CreateShader(ID3D12Device* device, ID3D12RootSignature* rootSignature, bool bDrawMode);
 	virtual void CreateShaderVariables(ID3D12Device* device, ID3D12CommandList* commandList);
 	virtual void UpdateShaderVariables(ID3D12GraphicsCommandList* commandList, XMFLOAT4X4* worldMatrix);
 
@@ -54,7 +56,7 @@ public:
 	virtual D3D12_SHADER_BYTECODE CreateVertexShader(ID3DBlob** shaderBlob) override;
 	virtual D3D12_SHADER_BYTECODE CreatePixelShader(ID3DBlob** shaderBlob) override;
 
-	virtual void CreateShader(ID3D12Device* device, ID3D12RootSignature* rootSignature) override;
+	virtual void CreateShader(ID3D12Device* device, ID3D12RootSignature* rootSignature);
 };
 
 class CObjectsShader : public CShader {
@@ -70,18 +72,17 @@ public:
 	virtual D3D12_SHADER_BYTECODE CreateVertexShader(ID3DBlob** shaderBlob) override;
 	virtual D3D12_SHADER_BYTECODE CreatePixelShader(ID3DBlob** shaderBlob) override;
 
-	virtual void CreateShader(ID3D12Device* device, ID3D12RootSignature* rootSignature) override;
+	virtual void CreateShader(ID3D12Device* device, ID3D12RootSignature* rootSignature);
 	virtual void ReleaseUploadBuffers();
 	
 	virtual void Render(ID3D12GraphicsCommandList* commandList, CCamera* pCamera);
 
 protected:
-	CGameObject** m_ppObjects{ nullptr };
-	int m_nObjects{ 0 };
+	std::list<CGameObject*> m_ppObjects{};
 };
 
-class CInstancingShader : public CObjectsShader
-{
+// ∏ ¡¶¿€ø° ªÁøÎµ… ºŒ¿Ã¥ı
+class CInstancingShader : public CObjectsShader{
 public:
 	CInstancingShader();
 	virtual ~CInstancingShader();
@@ -102,3 +103,31 @@ protected:
 	ID3D12Resource *m_pd3dcbGameObjects = NULL;
 	VS_VB_INSTANCE* m_pcbMappedGameObjects = NULL;
 };
+
+class CBulletShader : public CObjectsShader{
+public:
+	CBulletShader();
+	virtual ~CBulletShader();
+	virtual D3D12_INPUT_LAYOUT_DESC CreateInputLayout();
+	virtual D3D12_SHADER_BYTECODE CreateVertexShader(ID3DBlob** ppd3dShaderBlob);
+	virtual D3D12_SHADER_BYTECODE CreatePixelShader(ID3DBlob** ppd3dShaderBlob);
+	virtual void CreateShader(ID3D12Device* pd3dDevice, ID3D12RootSignature
+		* pd3dGraphicsRootSignature);
+	virtual void CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
+		* pd3dCommandList);
+	virtual void UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void ReleaseShaderVariables();
+	virtual void BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
+		* pd3dCommandList);
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
+
+	virtual void AnimateObjects(float elapsedTime) override;
+	void addBullet(const XMFLOAT3& playerPos, const XMFLOAT4X4& world);
+protected:
+	
+	ID3D12Resource* m_pd3dcbGameObjects = NULL;
+	VS_VB_INSTANCE* m_pcbMappedGameObjects = NULL;
+	CCubeMeshDiffused* bulletMesh{ nullptr };
+	const int maxBulletCount{ 100 };
+};
+
