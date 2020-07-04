@@ -7,6 +7,6 @@ void CBullet::Animate(float elapsedTime){
 	else {
 		XMStoreFloat3(&direction, XMVector3Normalize(XMVectorSubtract(
 			XMLoadFloat3(&shootTarget->GetPosition()), XMLoadFloat3(&GetPosition()))));
-		SetPosition(Vector3::Add(GetPosition(), Vector3::ScalarProduct(direction, elapsedTime * 50.0f)));
+		SetPosition(Vector3::Add(GetPosition(), Vector3::ScalarProduct(direction, elapsedTime * 300.0f)));
 	}
 }

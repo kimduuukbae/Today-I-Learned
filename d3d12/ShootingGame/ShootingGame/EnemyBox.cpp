@@ -157,7 +157,7 @@ void CEnemyBoxShader::AnimateObjects(float elapsedTime) {
 void CEnemyBoxShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12RootSignature* pd3dGraphicsRootSignature){
 	pipelineStateCount = 1;
 	pipelineStates = new ID3D12PipelineState * [pipelineStateCount];
-	CShader::CreateShader(pd3dDevice, pd3dGraphicsRootSignature, false);
+	CShader::CreateShader(pd3dDevice, pd3dGraphicsRootSignature, true);
 }
 
 CGameObject* CEnemyBoxShader::IsPickingObject(const XMFLOAT3& rayDirOrigin, const XMFLOAT3& rayDir){

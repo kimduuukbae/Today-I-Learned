@@ -7,7 +7,6 @@
 #include "Camera.h"
 #include "Player.h"
 #include "Bullet.h"
-#include <iostream>
 
 CScene::CScene() {}
 
