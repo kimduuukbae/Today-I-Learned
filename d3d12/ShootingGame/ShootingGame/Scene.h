@@ -22,7 +22,7 @@ public:
 	void AnimateObjects(float fTimeElapsed);
 	void Render(const ComPtr<ID3D12GraphicsCommandList>& pd3dCommandList, CCamera* pCamera);
 
-	void ProcessCollision(CAirplanePlayer* player);
+	bool ProcessCollision(CAirplanePlayer* player);
 	ID3D12RootSignature* CreateGraphicsRootSignature(ID3D12Device* device);
 	ID3D12RootSignature* GetGraphicsRootSignature();
 

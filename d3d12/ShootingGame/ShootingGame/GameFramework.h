@@ -3,6 +3,14 @@
 #include "Scene.h"
 #include "Player.h"
 
+#pragma comment(lib, "fmod_vc")
+
+namespace FMOD {
+	class System;
+	class Channel;
+	class ChannelGroup;
+	class Sound;
+}
 class CCamera;
 
 class CGameFramework{
@@ -48,6 +56,11 @@ private:
 	CScene* m_pScene;
 	CPlayer* m_pPlayer;
 	POINT m_ptOldCursorPos;
+
+	FMOD::System* pFmod;
+	FMOD::Channel* ch[3];
+	FMOD::ChannelGroup* gr[3];
+	FMOD::Sound* Sound[3];
 
 public:
 	CGameFramework();

@@ -192,7 +192,7 @@ D3D12_SHADER_BYTECODE CPlayerShader::CreateVertexShader(ID3DBlob** shaderBlob) {
 void CPlayerShader::CreateShader(ID3D12Device* device, ID3D12RootSignature* rootSignature) {
 	pipelineStateCount = 1;
 	pipelineStates = new ID3D12PipelineState * [pipelineStateCount];
-	CShader::CreateShader(device, rootSignature, true);
+	CShader::CreateShader(device, rootSignature, false);
 }
 
 D3D12_SHADER_BYTECODE CPlayerShader::CreatePixelShader(ID3DBlob** shaderBlob) {
@@ -305,11 +305,9 @@ void CInstancingShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12RootSignatu
 
 void CInstancingShader::CreateShaderVariables(ID3D12Device* pd3dDevice,
 	ID3D12GraphicsCommandList* pd3dCommandList) {
-	//인스턴스 정보를 저장할 정점 버퍼를 업로드 힙 유형으로 생성한다.
 	m_pd3dcbGameObjects = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL,
 		sizeof(VS_VB_INSTANCE) * m_ppObjects.size(), D3D12_HEAP_TYPE_UPLOAD,
 		D3D12_RESOURCE_STATE_GENERIC_READ, NULL);
-	//정점 버퍼(업로드 힙)에 대한 포인터를 저장한다. 
 	m_pd3dcbGameObjects->Map(0, NULL, (void**)&m_pcbMappedGameObjects);
 }
 

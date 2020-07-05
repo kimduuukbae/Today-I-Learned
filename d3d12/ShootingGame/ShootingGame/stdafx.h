@@ -221,6 +221,13 @@ namespace Matrix4x4
 	}
 }
 
+enum E_SOUND {
+	E_BGM,
+	E_ATTACK,
+	E_HIT
+};
+
+
 #define RANDOM_COLOR XMFLOAT4(rand() / float(RAND_MAX), rand() / float(RAND_MAX), rand() / float(RAND_MAX), rand() / float(RAND_MAX))
 #define RANDOM_POS XMFLOAT3(rand() / float(RAND_MAX), rand() / float(RAND_MAX), rand() / float(RAND_MAX))
 #define RANDOM_F(x) float(rand()) / float((RAND_MAX) * x)

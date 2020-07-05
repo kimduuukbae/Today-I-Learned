@@ -57,11 +57,13 @@ void CScene::Render(const ComPtr<ID3D12GraphicsCommandList>& pd3dCommandList, CC
 		it->Render(pd3dCommandList.Get(), pCamera);
 }
 
-void CScene::ProcessCollision(CAirplanePlayer* player){
+bool CScene::ProcessCollision(CAirplanePlayer* player){
 
 	CEnemyBoxShader* shader{
 		reinterpret_cast<CEnemyBoxShader*>(m_pShaders[1]) };
 	
+	bool bIsCollide{ false };
+
 	for (auto& bullet : player->GetBulletList()) {
 		for (auto& box : shader->GetGameObject()) {
 			CEnemyBox* enemy{ reinterpret_cast<CEnemyBox*>(box) };
@@ -69,9 +71,11 @@ void CScene::ProcessCollision(CAirplanePlayer* player){
 			if (enemy->isCollision(bul->GetBoundingBox())) {
 				enemy->SetLive(false);
 				bul->SetLive(false);
+				bIsCollide = true;
 			}
 		}
 	}
+	return bIsCollide;
 }
 
 ID3D12RootSignature* CScene::CreateGraphicsRootSignature(ID3D12Device* device) {

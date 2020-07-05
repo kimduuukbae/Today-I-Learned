@@ -1,12 +1,18 @@
 #include "stdafx.h"
 #include "GameFramework.h"
 #include "Camera.h"
+#include "inc/fmod.hpp"
 
 CGameFramework::CGameFramework() : 
 	m_nWndClientWidth{ FRAME_BUFFER_WIDTH },
 	m_nWndClientHeight{ FRAME_BUFFER_HEIGHT }{
 	_tcscpy_s(pszFrameRate, _T("ShootingGame("));
 	m_pScene = nullptr;
+	FMOD::System_Create(&pFmod);
+	pFmod->init(3, FMOD_INIT_NORMAL, nullptr);
+	pFmod->createSound("data/bgm.mp3", FMOD_LOOP_NORMAL, nullptr, &Sound[E_BGM]);
+	pFmod->createSound("data/attack.wav", FMOD_LOOP_OFF, nullptr, &Sound[E_ATTACK]);
+	pFmod->createSound("data/hit.mp3", FMOD_LOOP_OFF, nullptr, &Sound[E_HIT]);
 }
 
 CGameFramework::~CGameFramework() {
@@ -17,6 +23,11 @@ CGameFramework::~CGameFramework() {
 	pdxgiDebug->Release();
 	_CrtDumpMemoryLeaks();
 #endif
+	for (int i = 0; i < 3; ++i) {
+		Sound[i]->release();
+		gr[i]->release();
+	}
+	pFmod->release();
 }
 
 bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd){
@@ -32,7 +43,7 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd){
 	CreateDepthStencilView();
 
 	BuildObjects();
-
+	pFmod->playSound(Sound[E_BGM], gr[E_BGM], false, &ch[E_BGM]);
 	return true;
 }
 
@@ -249,8 +260,6 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 	case WM_RBUTTONUP:
 		::ReleaseCapture();
 		break;
-	case WM_MOUSEMOVE:
-		break;
 	default:
 		break;
 	}
@@ -263,16 +272,12 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 		case VK_ESCAPE:
 			::PostQuitMessage(0);
 			break;
-		case VK_RETURN:
-			break;
-		case VK_F1:
-		case VK_F2:
-		case VK_F3:
-			break;
-		case VK_F8:
-			break;
 		case VK_F9:
 			changeSwapChainState();
+			break;
+		case VK_CONTROL:
+			reinterpret_cast<CAirplanePlayer*>(m_pPlayer)->ShootBullet();
+			pFmod->playSound(Sound[E_ATTACK], gr[E_ATTACK], false, &ch[E_ATTACK]);
 			break;
 		default:
 			break;
@@ -339,8 +344,6 @@ void CGameFramework::ProcessInput(){
 	static UCHAR pKeyBuffer[256]{};
 	DWORD dwDirection{};
 
-	/*키보드의 상태 정보를 반환한다. 화살표 키(‘→’, ‘←’, ‘↑’, ‘↓’)를 누르면 플레이어를 오른쪽/왼쪽(로컬 x-축), 앞/
-	뒤(로컬 z-축)로 이동한다. ‘Page Up’과 ‘Page Down’ 키를 누르면 플레이어를 위/아래(로컬 y-축)로 이동한다.*/
 	if (::GetKeyboardState(pKeyBuffer)){
 		if (pKeyBuffer[VK_UP] & 0xF0) dwDirection |= DIR_FORWARD;
 		if (pKeyBuffer[VK_DOWN] & 0xF0) dwDirection |= DIR_BACKWARD;
@@ -348,15 +351,11 @@ void CGameFramework::ProcessInput(){
 		if (pKeyBuffer[VK_RIGHT] & 0xF0) dwDirection |= DIR_RIGHT;
 		if (pKeyBuffer[VK_PRIOR] & 0xF0) dwDirection |= DIR_UP;
 		if (pKeyBuffer[VK_NEXT] & 0xF0) dwDirection |= DIR_DOWN;
-		if (pKeyBuffer[VK_CONTROL] & 0xF0) reinterpret_cast<CAirplanePlayer*>(m_pPlayer)->ShootBullet();
 	}
 
 	float cxDelta{}, cyDelta{};
 	POINT ptCursorPos{};
-	/*마우스를 캡쳐했으면 마우스가 얼마만큼 이동하였는 가를 계산한다. 마우스 왼쪽 또는 오른쪽 버튼이 눌러질 때의
-	메시지(WM_LBUTTONDOWN, WM_RBUTTONDOWN)를 처리할 때 마우스를 캡쳐하였다. 그러므로 마우스가 캡쳐된
-	것은 마우스 버튼이 눌려진 상태를 의미한다. 마우스 버튼이 눌려진 상태에서 마우스를 좌우 또는 상하로 움직이면 플
-	레이어를 x-축 또는 y-축으로 회전한다.*/
+
 	if (::GetCapture() == m_hWnd){
 		::SetCursor(NULL);
 		::GetCursorPos(&ptCursorPos);
@@ -403,7 +402,9 @@ void CGameFramework::ProcessInput(){
 
 
 	m_pPlayer->Update(gameTimer.getElapsedTime());
-	m_pScene->ProcessCollision(reinterpret_cast<CAirplanePlayer*>(m_pPlayer));
+	if (m_pScene->ProcessCollision(reinterpret_cast<CAirplanePlayer*>(m_pPlayer))) 
+		pFmod->playSound(Sound[E_HIT], gr[E_HIT], false, &ch[E_HIT]);
+	
 }
 
 void CGameFramework::AnimateObjects(){
