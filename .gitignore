@@ -108,12 +108,10 @@ Saved/*
 
 # Compiled source files for the engine to use
 Intermediate/*
-<<<<<<< HEAD
 Plugins/*/Intermediate/*
 
 # Cache files for the editor to use
 DerivedDataCache/*
-=======
 
 # Cache files for the editor to use
 DerivedDataCache/*
@@ -127,5 +125,7 @@ DerivedDataCache/*
 .ctrlp_cache/
 
 *.vcxproj.FileListAbsolute.txt
->>>>>>> 82ec15a5dee603b9748f92d31f779c5ae1888304
+
+# C++ 20 
+C++20/C++20Example/*
 
