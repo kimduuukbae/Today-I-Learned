@@ -303,7 +303,7 @@ void CGameFramework::changeSwapChainState(){
 	BOOL bFullScreenState{ false };
 	m_pdxgiSwapChain->GetFullscreenState(&bFullScreenState, nullptr);
 	m_pdxgiSwapChain->SetFullscreenState(!bFullScreenState, nullptr);
-
+	//m_pdxgiSwapChain->Get
 	DXGI_MODE_DESC targetModeDesc{};
 	targetModeDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	targetModeDesc.Width = m_nWndClientWidth;
