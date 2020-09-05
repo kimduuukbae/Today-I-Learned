@@ -129,3 +129,6 @@ DerivedDataCache/*
 # C++ 20 
 C++20/C++20Example/*
 
+# Lunar - D3DX
+Lunar-D3D12/D3D12/*
+
