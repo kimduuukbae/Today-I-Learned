@@ -27,7 +27,7 @@ bool BoxApp::Initialize() {
 	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
 
 	FlushCommandQueue();
-
+	BoxGeometry->DisposeUploaders();
 	return true;
 }
 
@@ -51,11 +51,10 @@ void BoxApp::Update(const GameTimer& gt){
 
 	XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
 	XMStoreFloat4x4(&viewMatrix, view);
-
+	worldMatrix._42 = -1.0f;
 	XMMATRIX world = XMLoadFloat4x4(&worldMatrix);
 	XMMATRIX proj = XMLoadFloat4x4(&projMatrix);
 	XMMATRIX worldViewProj = world * view * proj;
-
 	// Update the constant buffer with the latest worldViewProj matrix.
 	ObjectConstants objConstants;
 	XMStoreFloat4x4(&objConstants.worldViewProjMat, XMMatrixTranspose(worldViewProj));
@@ -132,17 +131,23 @@ void BoxApp::Draw(const GameTimer& gt)
 	// Specify the buffers we are going to render to.
 	mCommandList->OMSetRenderTargets(1, &CurrentBackBufferView(), true, &DepthStencilView());
 
+	ID3D12DescriptorHeap* descriptorHeaps[] = { cbvHeap.Get() };
+	mCommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+
 	mCommandList->SetGraphicsRootSignature(rootSignature.Get());
 
 	mCommandList->IASetVertexBuffers(0, 1, &BoxGeometry->VertexBufferView());
 	mCommandList->IASetIndexBuffer(&BoxGeometry->IndexBufferView());
-	mCommandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	mCommandList->SetGraphicsRootDescriptorTable(0, cbvHeap->GetGPUDescriptorHandleForHeapStart());
+	mCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	
+	D3D12_GPU_DESCRIPTOR_HANDLE address{ cbvHeap->GetGPUDescriptorHandleForHeapStart() };
+
+	mCommandList->SetGraphicsRootDescriptorTable(0, address);
+
 	mCommandList->DrawIndexedInstanced(
 		BoxGeometry->DrawArgs["box"].IndexCount,
 		1, 0, 0, 0);
+
 	// 인덱스 크기, 그릴갯수, 인덱스 시작점, 정점 시작점, 인스턴싱
 
 	// Indicate a state transition on the resource usage.
@@ -179,11 +184,10 @@ void BoxApp::BuildDescriptorHeaps() {
 
 void BoxApp::BuildConstantBuffers() {
 	objectCB = std::make_unique<D3D::UploadBuffer<ObjectConstants>>(md3dDevice.Get(), 1, true);
-	constexpr UINT CBByteSize{ D3D::ConstantBufferByteSize(sizeof(ObjectConstants)) };
-	D3D12_GPU_VIRTUAL_ADDRESS cbAddress{ objectCB->GetResource()->GetGPUVirtualAddress() };
 
-	int boxIndex{};
-	cbAddress += boxIndex * CBByteSize;
+	constexpr UINT CBByteSize{ D3D::ConstantBufferByteSize(sizeof(ObjectConstants)) };
+
+	D3D12_GPU_VIRTUAL_ADDRESS cbAddress{ objectCB->GetResource()->GetGPUVirtualAddress() };
 
 	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc{};
 	cbvDesc.BufferLocation = cbAddress;
@@ -202,14 +206,14 @@ void BoxApp::BuildRootSignature() {
 	D3D12_ROOT_PARAMETER rootParameter[1]{};
 
 	// 상수 버퍼 뷰를 '하나' 담는 서술자 테이블을 생성한다.
-	D3D12_DESCRIPTOR_RANGE cbvTable{};
-	cbvTable.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-	cbvTable.NumDescriptors = 1;
-	cbvTable.BaseShaderRegister = 0;		// 0번 레지스터
+	D3D12_DESCRIPTOR_RANGE cbvTable1{};
+	cbvTable1.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+	cbvTable1.NumDescriptors = 1;
+	cbvTable1.BaseShaderRegister = 0;		// 0번 레지스터
 
 	rootParameter[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 	rootParameter[0].DescriptorTable.NumDescriptorRanges = 1;
-	rootParameter[0].DescriptorTable.pDescriptorRanges = &cbvTable;
+	rootParameter[0].DescriptorTable.pDescriptorRanges = &cbvTable1;
 
 	// 루트시그니쳐 서술자
 	D3D12_ROOT_SIGNATURE_DESC rootSigDesc{};
@@ -244,87 +248,43 @@ void BoxApp::BuildShadersAndInputLayout() {
 		{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12,
 		D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
 	};
+
 	// Semantic 이름, Semantic 인덱스, 타입, 슬롯, 오프셋
 	// 슬롯 타입, 인스턴스 갯수
 }
 
 void BoxApp::BuildBoxGeometry() {
-	std::array<Vertex, 8> vertices {
-		Vertex({ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT4(Colors::White) }),
-		Vertex({ XMFLOAT3(-1.0f, +1.0f, -1.0f), XMFLOAT4(Colors::Black) }),
-		Vertex({ XMFLOAT3(+1.0f, +1.0f, -1.0f), XMFLOAT4(Colors::Red) }),
-		Vertex({ XMFLOAT3(+1.0f, -1.0f, -1.0f), XMFLOAT4(Colors::Green) }),
-		Vertex({ XMFLOAT3(-1.0f, -1.0f, +1.0f), XMFLOAT4(Colors::Blue) }),
-		Vertex({ XMFLOAT3(-1.0f, +1.0f, +1.0f), XMFLOAT4(Colors::Yellow) }),
-		Vertex({ XMFLOAT3(+1.0f, +1.0f, +1.0f), XMFLOAT4(Colors::Cyan) }),
-		Vertex({ XMFLOAT3(+1.0f, -1.0f, +1.0f), XMFLOAT4(Colors::Magenta) })
-	};
+	const auto vertexSet{ loadVertexFromFile("Models/skull.txt") };
 
-	std::array<std::uint16_t, 36> indices =
-	{
-		// 앞면
-		0, 1, 2,
-		0, 2, 3,
-
-		// 뒷면
-		4, 6, 5,
-		4, 7, 6,
-
-		// 왼쪽면
-		4, 5, 1,
-		4, 1, 0,
-
-		// 오른쪽면
-		3, 2, 6,
-		3, 6, 7,
-
-		// 윗면
-		1, 5, 6,
-		1, 6, 2,
-
-		// 아랫면
-		4, 0, 3,
-		4, 3, 7
-	};
-
-	const UINT vbByteSize = (UINT)vertices.size() * sizeof(Vertex);
-	const UINT ibByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
+	const UINT vbByteSize = (UINT)vertexSet.first.size() * sizeof(Vertex);
+	const UINT ibByteSize = (UINT)vertexSet.second.size() * sizeof(std::uint32_t);
 
 	BoxGeometry = std::make_unique<MeshGeometry>();
 	BoxGeometry->Name = "BoxGeo";
 
-	// Blob에 정점과 인덱스들을 저장해둠 ( 배열이라 생각하면 될 듯? )
-	FailedAssert(D3DCreateBlob(vbByteSize, &BoxGeometry->VertexBufferCPU));
-	CopyMemory(BoxGeometry->VertexBufferCPU->GetBufferPointer(), vertices.data(), vbByteSize);
-
-	FailedAssert(D3DCreateBlob(vbByteSize, &BoxGeometry->IndexBufferCPU));
-	CopyMemory(BoxGeometry->IndexBufferCPU->GetBufferPointer(), indices.data(), ibByteSize);
-
 	// 디폴트 버퍼 생성
 	BoxGeometry->VertexBufferGPU = D3D::CreateDefaultBuffer(md3dDevice.Get(),
-		mCommandList.Get(), vertices.data(), vbByteSize, BoxGeometry->VertexBufferUploader);
-
+		mCommandList.Get(), vertexSet.first.data(), vbByteSize, BoxGeometry->VertexBufferUploader);
 	BoxGeometry->IndexBufferGPU = D3D::CreateDefaultBuffer(md3dDevice.Get(),
-		mCommandList.Get(), indices.data(), ibByteSize, BoxGeometry->IndexBufferUploader);
+		mCommandList.Get(), vertexSet.second.data(), ibByteSize, BoxGeometry->IndexBufferUploader);
 
 	BoxGeometry->VertexByteStride = sizeof(Vertex);
 	BoxGeometry->VertexBufferByteSize = vbByteSize;
-	BoxGeometry->IndexFormat = DXGI_FORMAT_R16_UINT;
+	BoxGeometry->IndexFormat = DXGI_FORMAT_R32_UINT;
 	BoxGeometry->IndexBufferByteSize = ibByteSize;
 
-
 	SubmeshGeometry submesh;
-	submesh.IndexCount = (UINT)indices.size();
+	submesh.IndexCount = (UINT)vertexSet.second.size();
 	submesh.StartIndexLocation = 0;
 	submesh.BaseVertexLocation = 0;
-	BoxGeometry->DrawArgs["box"] = submesh;
 
+	BoxGeometry->DrawArgs["box"] = submesh;
 }
 
 void BoxApp::BuildPSO() {
 	//래스터라이저
 	D3D12_RASTERIZER_DESC rasDesc{};
-	rasDesc.FillMode = D3D12_FILL_MODE_SOLID;
+	rasDesc.FillMode = D3D12_FILL_MODE_WIREFRAME;
 	rasDesc.CullMode = D3D12_CULL_MODE_BACK;
 	rasDesc.FrontCounterClockwise = false; // 전면이 시계방향 ? false = 시계방향
 	rasDesc.DepthBias = D3D12_DEFAULT_DEPTH_BIAS; // 픽셀의 깊이값에 더해질 깊이 바이어스 값
