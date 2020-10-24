@@ -11,14 +11,16 @@ public:
 	virtual ~Scene() {}
 	void SetMainCamera(CameraComponent* target);
 
+protected:
+	virtual void Init() = 0;
+
 private:
 	friend SceneManager;
 
-	virtual void Init() = 0;
 	void Draw();
 	void Update(const GameTimer& gt);
 
 	CameraComponent* mainCam{ nullptr };
-	std::vector<std::unique_ptr<Object>> objects{ nullptr };
+	std::vector<std::unique_ptr<Object>> objects;
 };
 

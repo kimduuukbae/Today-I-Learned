@@ -9,9 +9,7 @@ void Scene::SetMainCamera(CameraComponent* target)
 
 void Scene::Draw()
 {
-	for (auto& it : objects) {
-		
-	}
+
 }
 
 void Scene::Update(const GameTimer& gt)

@@ -14,4 +14,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     if (!App.Initialize())
         return -1;
     App.Run();
+    
+    return 0;
 }

@@ -4,7 +4,7 @@
 class FrameworkApp;
 
 template <typename T>
-concept is_base = (std::is_base_of_v<T, Scene> && std::is_base_of_v<Scene, T>);
+concept is_base = (std::is_base_of_v<T, Scene> || std::is_base_of_v<Scene, T>);
 
 class SceneManager
 {

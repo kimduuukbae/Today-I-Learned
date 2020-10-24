@@ -1,9 +1,12 @@
 #include "stdafx.h"
 #include "SceneManager.h"
-#include "Scene.h"
+#include "GameScene.h"
+
+using namespace std;
 
 void SceneManager::Init()
 {
+	Commit<GameScene>("GameScene"s);
 	mainScene->Init();
 }
 
