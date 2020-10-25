@@ -14,6 +14,9 @@ public:
 	void SetPosition(const DirectX::XMFLOAT3& pos);
 	void SetRotation(const DirectX::XMFLOAT3& rot);
 
+protected:
+	using Super = Object;
+
 private:
 	friend class Scene;
 

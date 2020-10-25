@@ -15,7 +15,5 @@ private:
 	DirectX::XMFLOAT3 rotation{};
 
 	DirectX::XMFLOAT4X4 worldMatrix{ Math::Identity4x4() };
-
-	std::unique_ptr<Buffers::UploadBuffer<DirectX::XMFLOAT4X4>> worldMatCB{ nullptr };
 };
 

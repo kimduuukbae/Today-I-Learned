@@ -16,7 +16,8 @@ bool FrameworkApp::Initialize() {
 	if (!D3DApp::Initialize())
 		return false;
 
-	sceneManager = make_unique<SceneManager>();
+	sceneManager = SceneManager::GetInstance();
+
 	sceneManager->Init();
 
 	FailedAssert(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));

@@ -1,4 +1,5 @@
 #pragma once
+#include "Singleton.h"
 #include "Scene.h"
 
 class FrameworkApp;
@@ -6,7 +7,7 @@ class FrameworkApp;
 template <typename T>
 concept is_base = (std::is_base_of_v<T, Scene> || std::is_base_of_v<Scene, T>);
 
-class SceneManager
+class SceneManager : public Singleton<SceneManager>
 {
 public:
 	SceneManager() = default;
@@ -28,8 +29,8 @@ private:
 	void Draw();
 	void Update(const GameTimer& gt);
 
-	std::unordered_map<std::string, std::unique_ptr<Scene>> Scenes{};
+	std::unordered_map<std::string, std::unique_ptr<Scene>> Scenes;
 	
-	Scene* mainScene;
+	Scene* mainScene{ nullptr };
 };
 

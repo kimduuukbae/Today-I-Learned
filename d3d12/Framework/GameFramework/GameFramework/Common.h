@@ -34,7 +34,7 @@ namespace Buffers
 	{
 	public:
 		UploadBuffer(ID3D12Device* device, std::uint32_t elementCount, bool isConstantBuffer)
-			: mIsConstantBuffer{ isConstantBuffer }, numElement{ elementCount }{
+			: mIsConstantBuffer{ isConstantBuffer }{
 			if (isConstantBuffer)
 				byteSize = ConstantBufferByteSize(sizeof(T));
 
@@ -76,12 +76,9 @@ namespace Buffers
 			return uploadBuffer.Get();
 		}
 
-		void CopyData(std::size_t elementIndex, const T& data) {
+		void CopyData(std::size_t elementIndex, const T& data) 
+		{
 			memcpy(&mappedData[elementIndex * byteSize], &data, sizeof(T));
-		}
-
-		std::uint32_t GetNum() const {
-			return numElement;
 		}
 
 		UploadBuffer(const UploadBuffer& rhs) = delete;
@@ -90,7 +87,6 @@ namespace Buffers
 	private:
 		bool mIsConstantBuffer{ false };
 		std::uint32_t byteSize{};
-		std::uint32_t numElement{};
 
 		Microsoft::WRL::ComPtr<ID3D12Resource> uploadBuffer{};
 		BYTE* mappedData{ nullptr };
