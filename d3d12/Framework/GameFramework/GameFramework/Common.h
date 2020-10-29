@@ -115,10 +115,4 @@ namespace Common
 	{
 		return { .ptr {handle.ptr + size * offset} };
 	}
-
-	Microsoft::WRL::ComPtr<ID3DBlob> CompileShader(
-		const std::wstring_view& fileName,
-		const D3D_SHADER_MACRO* defines,
-		const std::string_view& entrypoint,
-		const std::string_view& target);
 }

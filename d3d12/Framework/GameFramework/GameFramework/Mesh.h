@@ -2,11 +2,6 @@
 
 #include "Common.h"
 
-/*
-	하드웨어 인스턴싱을 한다고 하면 Mesh 안에 상수버퍼가 있는게 맞음
-
-*/
-
 struct Vertex
 {
 	DirectX::XMFLOAT3 pos{};
@@ -29,14 +24,14 @@ public:
 	MeshBase();
 	virtual ~MeshBase();
 
+	void ReleaseUploadBuffer();
+
 protected:
 
 	using Super = MeshBase;
 
-	void Init();
-	void ReleaseUploadBuffer();
-	void IncreaseConstantBuffer();
-	void Assign(size_t count);
+	D3D12_VERTEX_BUFFER_VIEW GetVertexBufferView();
+	D3D12_INDEX_BUFFER_VIEW GetIndexBufferView();
 
 	Microsoft::WRL::ComPtr<ID3D12Resource> vBuffer{ nullptr };
 	Microsoft::WRL::ComPtr<ID3D12Resource> iBuffer{ nullptr };
@@ -44,16 +39,15 @@ protected:
 	Microsoft::WRL::ComPtr<ID3D12Resource> vUploadBuffer{ nullptr };
 	Microsoft::WRL::ComPtr<ID3D12Resource> iUploadBuffer{ nullptr };
 
-	std::unique_ptr<Buffers::UploadBuffer<DirectX::XMFLOAT4X4>> cBuffer;
-
-	size_t usedCount{};
-	size_t maxCount{ 1000 };
-
 	uint32_t vByteStride{};
 	uint32_t vByteSize{};
 
 	uint32_t iByteSize{};
 	DXGI_FORMAT iFormat{};
+
+	uint32_t iCount{};
+
+	D3D12_PRIMITIVE_TOPOLOGY primTopology{ D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST };
 };
 
 class Mesh : public MeshBase
@@ -61,9 +55,10 @@ class Mesh : public MeshBase
 public:
 	Mesh();
 	virtual ~Mesh();
-	void CopyData(const DirectX::XMFLOAT4X4& world);
+
+	void BindingResource(ID3D12GraphicsCommandList* cmdList);
+	void Draw(ID3D12GraphicsCommandList* cmdList);
 protected:
 	using Super = Mesh;
-	size_t curCount{};
 };
 

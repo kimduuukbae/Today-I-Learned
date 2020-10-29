@@ -7,8 +7,7 @@ public:
 	Singleton() = default;
 	virtual ~Singleton()
 	{
-		delete inst;
-		inst = nullptr;
+
 	}
 
 	static T* GetInstance()

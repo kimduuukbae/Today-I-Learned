@@ -1,15 +1,16 @@
 #include "stdafx.h"
 #include "FrameworkApp.h"
 #include "SceneManager.h"
+#include "ResourceManager.h"
 
 using namespace DirectX;
 using namespace Microsoft::WRL;
-using namespace D3D;
 using namespace std;
 
 FrameworkApp::FrameworkApp(HINSTANCE hInstance) : D3DApp{ hInstance } {}
 
 FrameworkApp::~FrameworkApp() {
+	sceneManager->Release();
 }
 
 bool FrameworkApp::Initialize() {
@@ -18,15 +19,17 @@ bool FrameworkApp::Initialize() {
 
 	sceneManager = SceneManager::GetInstance();
 
-	sceneManager->Init();
-
 	FailedAssert(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
+	sceneManager->Init();
 
 	FailedAssert(mCommandList->Close());
 	ID3D12CommandList* cmdsLists[]{ mCommandList.Get() };
 	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
 
 	FlushCommandQueue();
+
+	sceneManager->ClearUploadBuffer();
+
 	return true;
 }
 
@@ -80,7 +83,7 @@ void FrameworkApp::Draw()
 	//mCommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 	// 같은 타입의 힙은 하나만 달 수 있음!
 
-	sceneManager->Draw();
+	sceneManager->Draw(mCommandList.Get());
 
 	// 인덱스 크기, 그릴갯수, 인덱스 시작점, 정점 시작점, 인스턴싱
 

@@ -1,6 +1,10 @@
 #include "stdafx.h"
 #include "Object.h"
-#include "TransformComponent.h"
+
+Object::Object()
+{
+	transform = AddComponent<TransformComponent>();
+}
 
 void Object::SetTransform(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& rot)
 {
@@ -15,4 +19,15 @@ void Object::SetPosition(const DirectX::XMFLOAT3& pos)
 void Object::SetRotation(const DirectX::XMFLOAT3& rot)
 {
 	transform->SetRotation(rot);
+}
+
+TransformComponent* Object::GetTransform()
+{
+	return transform.get();
+}
+
+void Object::Update(const GameTimer& gt)
+{
+	for (auto& it : components)
+		it->Update(gt);
 }

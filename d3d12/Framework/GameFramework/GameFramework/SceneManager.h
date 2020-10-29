@@ -11,26 +11,30 @@ class SceneManager : public Singleton<SceneManager>
 {
 public:
 	SceneManager() = default;
-	~SceneManager() = default;
+	virtual ~SceneManager();
 	
 	template <typename T> requires is_base<T>
 	void Commit(const std::string& SceneName)
 	{
-		Scenes[SceneName] = make_unique<T>();
-		if (Scenes.size() == 1)
-			mainScene = Scenes[SceneName].get();
-		Scenes[SceneName]->Init();
+		scenes[SceneName] = make_unique<T>();
+		if (!mainScene)
+			mainScene = scenes[SceneName].get();
+		scenes[SceneName]->Init();
 	}
 	
 private:
 	friend FrameworkApp;
 
 	void Init();
-	void Draw();
+	void Draw(ID3D12GraphicsCommandList* cmdList);
 	void Update(const GameTimer& gt);
+	void ClearUploadBuffer();
 
-	std::unordered_map<std::string, std::unique_ptr<Scene>> Scenes;
+	std::unordered_map<std::string, std::unique_ptr<Scene>> scenes;
 	
 	Scene* mainScene{ nullptr };
+
+	class MeshManager* meshManager{ nullptr };
+	class ResourceManager* resourceManager{ nullptr };
 };
 

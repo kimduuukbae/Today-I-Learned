@@ -50,19 +50,7 @@
 #define ReleaseCom(x) { if(x){ x->Release(); x = 0; } }
 #endif
 
-namespace VectorMath {
-	constexpr DirectX::XMFLOAT4X4 Identity4X4() {
-		DirectX::XMFLOAT4X4 i{
-			1.0f, 0.0f, 0.0f, 0.0f,
-			0.0f, 1.0f, 0.0f, 0.0f,
-			0.0f, 0.0f, 1.0f, 0.0f,
-			0.0f, 0.0f, 0.0f, 1.0f };
-
-		return i;
-	}
-}
-
-namespace D3D {
+/*namespace D3D {
 
 	struct Material {	// 빛이 물체의 표면과 상호작용하는 방식.
 		std::string Name{};
@@ -76,4 +64,4 @@ namespace D3D {
 		DirectX::XMFLOAT4X4 MatTransform{ VectorMath::Identity4X4() };
 	};
 }
-
+*/

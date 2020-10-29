@@ -10,27 +10,30 @@ MeshBase::MeshBase() { }
 
 MeshBase::~MeshBase() { }
 
-
-void MeshBase::Assign(size_t count)
-{
-	usedCount += count;
-	if (usedCount > maxCount)
-		IncreaseConstantBuffer();
-}
-
 void MeshBase::ReleaseUploadBuffer()
 {
 	vUploadBuffer = nullptr;
 	iUploadBuffer = nullptr;
 }
 
-void MeshBase::IncreaseConstantBuffer()
+D3D12_VERTEX_BUFFER_VIEW MeshBase::GetVertexBufferView()
 {
-	maxCount += (maxCount / 2);
+	return
+	{
+		.BufferLocation {vBuffer->GetGPUVirtualAddress()},
+		.SizeInBytes {vByteSize},
+		.StrideInBytes {vByteStride}
+	};
+}
 
-	//cBuffer = nullptr;
-
-	//cBuffer = make_unique<UploadBuffer<XMFLOAT4X4>>(D3DApp::GetApp(), maxCount, true);
+D3D12_INDEX_BUFFER_VIEW MeshBase::GetIndexBufferView()
+{
+	return
+	{
+		.BufferLocation {iBuffer->GetGPUVirtualAddress()},
+		.SizeInBytes{iByteSize},
+		.Format{iFormat}
+	};
 }
 
 Mesh::Mesh()
@@ -39,4 +42,16 @@ Mesh::Mesh()
 
 Mesh::~Mesh()
 {
+}
+
+void Mesh::BindingResource(ID3D12GraphicsCommandList* cmdList)
+{
+	cmdList->IASetVertexBuffers(0, 1, &GetVertexBufferView());
+	cmdList->IASetIndexBuffer(&GetIndexBufferView());
+	cmdList->IASetPrimitiveTopology(primTopology);
+}
+
+void Mesh::Draw(ID3D12GraphicsCommandList* cmdList)
+{
+	cmdList->DrawIndexedInstanced(iCount, 1, 0, 0, 0);
 }
