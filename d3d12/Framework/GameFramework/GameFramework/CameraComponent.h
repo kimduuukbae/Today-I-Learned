@@ -36,6 +36,16 @@ public:
 	DirectX::XMFLOAT4X4 GetView4x4f()const;
 	DirectX::XMFLOAT4X4 GetProj4x4f()const;
 
+	void UpdateMatrix();
+	void SetLens(float fovY, float aspect, float nZ, float fZ);
+
+	// Get near and far plane dimensions in view space coordinates.
+	float GetNearWindowWidth()const;
+	float GetNearWindowHeight()const;
+	float GetFarWindowWidth()const;
+	float GetFarWindowHeight()const;
+
+	void Walk(float d);
 private:
 	DirectX::XMFLOAT3 position { 0.0f, 0.0f, 0.0f };
 	DirectX::XMFLOAT3 right { 1.0f, 0.0f, 0.0f };
@@ -49,5 +59,8 @@ private:
 
 	DirectX::XMFLOAT4X4 viewMatrix{ Math::Identity4x4() };
 	DirectX::XMFLOAT4X4 projMatrix{ Math::Identity4x4() };
+
+	float mNearWindowHeight{ 0.0f };
+	float mFarWindowHeight{ 0.0f };
 };
 

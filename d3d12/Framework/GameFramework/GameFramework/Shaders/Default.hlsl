@@ -2,6 +2,13 @@ cbuffer cbPerObject : register(b0)
 {
     float4x4 gWorld;
 };
+
+cbuffer cbPass : register(b1)
+{
+    float4x4 gView;
+    float4x4 gProj;
+    float4x4 gViewProj;
+};
  
 struct VertexIn
 {
@@ -16,15 +23,16 @@ struct VertexOut
     float3 PosW    : POSITION;
 };
 
-VertexOut VS(VertexIn vin, uint vid : SV_VertexID)
+VertexOut VS(VertexIn vin, uint nVertexID : SV_VertexID)
 {
 	VertexOut vout = (VertexOut)0.0f;
 	
     // Transform to world space.
     float4 posW = mul(float4(vin.PosL, 1.0f), gWorld);
+
     vout.PosW = posW.xyz;
-    if(vid == 0)
-    vout.PosH = float4(-1.0f, 0.0f, 1.0f , 1.0f);
+
+    vout.PosH = mul(posW, gViewProj);
 
     return vout;
 }

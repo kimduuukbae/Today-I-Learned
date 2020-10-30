@@ -47,7 +47,7 @@ protected:
 
 	uint32_t iCount{};
 
-	D3D12_PRIMITIVE_TOPOLOGY primTopology{ D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST };
+	D3D12_PRIMITIVE_TOPOLOGY primTopology{ D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST };
 };
 
 class Mesh : public MeshBase

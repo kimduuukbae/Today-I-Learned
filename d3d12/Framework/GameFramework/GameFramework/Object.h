@@ -3,6 +3,8 @@
 #include "IComponent.h"
 #include "TransformComponent.h"
 
+class Scene;
+
 class Object
 {
 public:
@@ -45,7 +47,7 @@ protected:
 	using Super = Object;
 
 private:
-	friend class Scene;
+	friend Scene;
 
 	std::unique_ptr<TransformComponent> transform;
 	std::vector<std::unique_ptr<IComponent>> components;

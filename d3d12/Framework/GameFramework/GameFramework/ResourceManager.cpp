@@ -1,8 +1,10 @@
 #include "stdafx.h"
 #include "ResourceManager.h"
 #include "d3dx12.h"
+#include "CameraComponent.h"
 
 using namespace Microsoft::WRL;
+using namespace DirectX;
 
 Microsoft::WRL::ComPtr<ID3DBlob> CompileShader(const std::wstring_view& fileName, const D3D_SHADER_MACRO* defines, const std::string_view& entrypoint, const std::string_view& target)
 {
@@ -25,33 +27,58 @@ Microsoft::WRL::ComPtr<ID3DBlob> CompileShader(const std::wstring_view& fileName
 
 ResourceManager::~ResourceManager()
 {
-
+	passCB = nullptr;
 }
 
 void ResourceManager::Init()
 {
+	CreateResources();
 	CreateRootSignature();
 	CreatePSO();
+}
+
+void ResourceManager::SetMainCamera(CameraComponent* camComp)
+{
+	mainCam = camComp;
+}
+
+ID3D12PipelineState* ResourceManager::GetPSO(const std::string& name)
+{
+	return psos[name].Get();
 }
 
 void ResourceManager::BindingResource(ID3D12GraphicsCommandList* cmdList)
 {
 	cmdList->SetPipelineState(psos["Opaque"].Get());
 	cmdList->SetGraphicsRootSignature(rootSignature.Get());
+
+	PassInfomation pass;
+
+	XMMATRIX view = mainCam->GetView();
+	XMMATRIX proj = mainCam->GetProj();
+
+	XMStoreFloat4x4(&pass.viewMatrix, XMMatrixTranspose(view));
+	XMStoreFloat4x4(&pass.projMatrix, XMMatrixTranspose(proj));
+
+	XMStoreFloat4x4(&pass.viewProj, XMMatrixTranspose(XMMatrixMultiply(view, proj)));
+	passCB->CopyData(0, pass);
+	cmdList->SetGraphicsRootConstantBufferView(1, passCB->GetResource()->GetGPUVirtualAddress());
 }
 
 void ResourceManager::CreateRootSignature()
 {
 	ID3D12Device* device{ D3DApp::GetApp()->GetDevice() };
-	D3D12_ROOT_PARAMETER param[4]{};
+	D3D12_ROOT_PARAMETER param[2]{};
 
 	param[0].Descriptor.ShaderRegister = 0;
 	param[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;	// WORLD
+	param[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
 	param[1].Descriptor.ShaderRegister = 1;
-	param[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;	// Materials
+	param[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;	// Pass
+	param[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
-	param[2].Descriptor.ShaderRegister = 2;
+	/*param[2].Descriptor.ShaderRegister = 2;
 	param[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;	// Pass
 
 	D3D12_DESCRIPTOR_RANGE srvRange{};
@@ -59,7 +86,7 @@ void ResourceManager::CreateRootSignature()
 	srvRange.NumDescriptors = 1;
 
 	param[3].DescriptorTable.NumDescriptorRanges = 1;
-	param[3].DescriptorTable.pDescriptorRanges = &srvRange;
+	param[3].DescriptorTable.pDescriptorRanges = &srvRange;*/
 
 	D3D12_STATIC_SAMPLER_DESC ssDesc{};
 
@@ -113,7 +140,7 @@ void ResourceManager::CreateRootSignature()
 
 	D3D12_ROOT_SIGNATURE_DESC desc{};
 	desc.pParameters = param;
-	desc.NumParameters = 1;
+	desc.NumParameters = 2;
 	desc.NumStaticSamplers = 6;
 	desc.pStaticSamplers = ssamples.data();
 	desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
@@ -128,8 +155,8 @@ void ResourceManager::CreatePSO()
 {
 	D3DApp* app{ D3DApp::GetApp() };
 
-	ComPtr<ID3DBlob> DefaultVS{ CompileShader(L"Shaders\\Default.hlsl", nullptr, "VS", "vs_5_1") };
-	ComPtr<ID3DBlob> DefaultPS{ CompileShader(L"Shaders\\Default.hlsl", nullptr, "PS", "ps_5_1") };
+	ComPtr<ID3DBlob> defaultVS{ CompileShader(L"Shaders\\Default.hlsl", nullptr, "VS", "vs_5_1") };
+	ComPtr<ID3DBlob> defaultPS{ CompileShader(L"Shaders\\Default.hlsl", nullptr, "PS", "ps_5_1") };
 
 	std::vector<D3D12_INPUT_ELEMENT_DESC> inputLayout
 	{
@@ -143,13 +170,13 @@ void ResourceManager::CreatePSO()
 	opaqueDesc.pRootSignature = rootSignature.Get();
 	opaqueDesc.VS = 
 	{
-		reinterpret_cast<BYTE*>(DefaultVS->GetBufferPointer()),
-		DefaultVS->GetBufferSize()
+		reinterpret_cast<BYTE*>(defaultVS->GetBufferPointer()),
+		defaultVS->GetBufferSize()
 	};
 	opaqueDesc.PS = 
 	{
-		reinterpret_cast<BYTE*>(DefaultPS->GetBufferPointer()),
-		DefaultPS->GetBufferSize()
+		reinterpret_cast<BYTE*>(defaultPS->GetBufferPointer()),
+		defaultPS->GetBufferSize()
 	};
 	opaqueDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 	opaqueDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
@@ -163,4 +190,10 @@ void ResourceManager::CreatePSO()
 	opaqueDesc.DSVFormat = app->mDepthStencilFormat;
 
 	app->GetDevice()->CreateGraphicsPipelineState(&opaqueDesc, IID_PPV_ARGS(&psos["Opaque"]));
+}
+
+void ResourceManager::CreateResources()
+{
+	D3DApp* app{ D3DApp::GetApp() };
+	passCB = std::make_unique<Buffers::UploadBuffer<PassInfomation>>(app->GetDevice(), 1, true);
 }

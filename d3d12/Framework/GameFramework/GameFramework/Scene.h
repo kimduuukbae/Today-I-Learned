@@ -9,7 +9,6 @@ class Scene
 public:
 	Scene() = default;
 	virtual ~Scene() {}
-	void SetMainCamera(CameraComponent* target);
 
 	template <typename T>
 	T* SpawnObject(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& rot)
@@ -30,7 +29,6 @@ private:
 	virtual void Draw(ID3D12GraphicsCommandList* cmdList);
 	void Update(const GameTimer& gt);
 
-	CameraComponent* mainCam{ nullptr };
 	std::vector<std::unique_ptr<Object>> objects;
 };
 

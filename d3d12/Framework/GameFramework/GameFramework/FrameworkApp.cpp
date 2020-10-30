@@ -2,6 +2,8 @@
 #include "FrameworkApp.h"
 #include "SceneManager.h"
 #include "ResourceManager.h"
+#include "GameplayStatics.h"
+#include "d3dx12.h"
 
 using namespace DirectX;
 using namespace Microsoft::WRL;
@@ -36,6 +38,7 @@ bool FrameworkApp::Initialize() {
 void FrameworkApp::OnResize() 
 {
 	D3DApp::OnResize();
+	GameplayStatics::SetMainCameraFov(0.25f * XM_PI, AspectRatio(), 1.0f, 1000.0f);
 }
 
 void FrameworkApp::Update(const GameTimer& gt) 
@@ -69,11 +72,8 @@ void FrameworkApp::Draw()
 	mCommandList->RSSetViewports(1, &mScreenViewport);
 	mCommandList->RSSetScissorRects(1, &mScissorRect);
 
-	D3D12_RESOURCE_BARRIER barrier{};
-	barrier.Transition.pResource = CurrentBackBuffer();
-	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-	mCommandList->ResourceBarrier(1, &barrier);
+	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT,
+		D3D12_RESOURCE_STATE_RENDER_TARGET));
 
 	mCommandList->ClearRenderTargetView(CurrentBackBufferView(), Colors::Brown, 0, nullptr);
 	mCommandList->ClearDepthStencilView(DepthStencilView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
@@ -87,10 +87,8 @@ void FrameworkApp::Draw()
 
 	// 인덱스 크기, 그릴갯수, 인덱스 시작점, 정점 시작점, 인스턴싱
 
-	barrier.Transition.pResource = CurrentBackBuffer();
-	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
-	mCommandList->ResourceBarrier(1, &barrier);
+	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mDepthStencilBuffer.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE,
+		D3D12_RESOURCE_STATE_PRESENT));
 
 	FailedAssert(mCommandList->Close());
 

@@ -2,11 +2,6 @@
 #include "Scene.h"
 #include "CameraComponent.h"
 
-void Scene::SetMainCamera(CameraComponent* target)
-{
-	mainCam = target;
-}
-
 void Scene::Draw(ID3D12GraphicsCommandList* cmdList)
 {
 	for (auto& it : objects)
@@ -15,5 +10,8 @@ void Scene::Draw(ID3D12GraphicsCommandList* cmdList)
 
 void Scene::Update(const GameTimer& gt)
 {
+//#if defined(__DEBUG) || defined(_DEBUG)
+//	if(mainCam)
+//#endif
 
 }

@@ -85,6 +85,8 @@ CubeMesh::CubeMesh(float width, float height, float depth,
 	iByteSize = ibSize;
 	iFormat = DXGI_FORMAT_R32_UINT; 
 	// Index Format 의 크기는 총바이트의 크기임, 한 요소의 크기가 아님.
+
+	iCount = static_cast<UINT>(i.size());
 }
 
 CubeMesh::~CubeMesh(){}
@@ -179,6 +181,8 @@ SphereMesh::SphereMesh(float radius, std::uint32_t stack, std::uint32_t slice,
 
 	iFormat = DXGI_FORMAT_R32_UINT;
 	iByteSize = ibSize;
+
+	iCount = static_cast<UINT>(indices.size());
 }
 
 SphereMesh::~SphereMesh(){}
