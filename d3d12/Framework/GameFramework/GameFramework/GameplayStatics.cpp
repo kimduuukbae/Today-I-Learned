@@ -26,3 +26,8 @@ float GameplayStatics::GetAspectRatio()
 {
 	return D3DApp::GetApp()->AspectRatio();
 }
+
+Texture* GameplayStatics::GetTexture(const std::filesystem::path& p)
+{
+	return nullptr;
+}

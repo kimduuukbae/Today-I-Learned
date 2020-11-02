@@ -1,15 +1,5 @@
-cbuffer cbPerObject : register(b0)
-{
-    float4x4 gWorld;
-};
+#include "Common.hlsli"
 
-cbuffer cbPass : register(b1)
-{
-    float4x4 gView;
-    float4x4 gProj;
-    float4x4 gViewProj;
-};
- 
 struct VertexIn
 {
 	float3 PosL    : POSITION;

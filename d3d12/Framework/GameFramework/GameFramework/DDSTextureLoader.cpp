@@ -1,27 +1,4 @@
-//--------------------------------------------------------------------------------------
-// File: DDSTextureLoader.cpp
-//
-// Functions for loading a DDS texture and creating a Direct3D 11 runtime resource for it
-//
-// Note these functions are useful as a light-weight runtime loader for DDS files. For
-// a full-featured DDS file reader, writer, and texture processing pipeline see
-// the 'Texconv' sample and the 'DirectXTex' library.
-//
-// THIS CODE AND INFORMATION IS PROVIDED "AS IS" WITHOUT WARRANTY OF
-// ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-// THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
-// PARTICULAR PURPOSE.
-//
-// Copyright (c) Microsoft Corporation. All rights reserved.
-//
-// http://go.microsoft.com/fwlink/?LinkId=248926
-// http://go.microsoft.com/fwlink/?LinkId=248929
-//--------------------------------------------------------------------------------------
-
-#include <assert.h>
-#include <algorithm>
-#include <memory>
-#include <wrl.h>
+#include "stdafx.h"
 
 #include "DDSTextureLoader.h" 
 #include "d3dx12.h"

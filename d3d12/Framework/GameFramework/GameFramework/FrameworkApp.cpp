@@ -67,7 +67,7 @@ void FrameworkApp::OnMouseMove(WPARAM btnState, int x, int y)
 void FrameworkApp::Draw()
 {
 	FailedAssert(mDirectCmdListAlloc->Reset());
-	FailedAssert(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
+	FailedAssert(mCommandList->Reset(mDirectCmdListAlloc.Get(), GameplayStatics::GetPSO("Opaque")));
 
 	mCommandList->RSSetViewports(1, &mScreenViewport);
 	mCommandList->RSSetScissorRects(1, &mScissorRect);

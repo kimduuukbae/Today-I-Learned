@@ -16,5 +16,6 @@ public:
 	static void SetMainCameraFov(float fovY, float aspect, float nZ, float fZ);
 
 	static float GetAspectRatio();
+	static class Texture* GetTexture(const std::filesystem::path& p);
 };
 
