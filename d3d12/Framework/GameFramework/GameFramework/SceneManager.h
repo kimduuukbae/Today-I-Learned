@@ -19,7 +19,6 @@ public:
 		scenes[SceneName] = make_unique<T>();
 		if (!mainScene)
 			mainScene = scenes[SceneName].get();
-		scenes[SceneName]->Init();
 	}
 	
 private:
