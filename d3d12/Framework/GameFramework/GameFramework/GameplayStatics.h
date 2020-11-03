@@ -5,7 +5,6 @@ class GameplayStatics
 public:
 	static void SetMainCamera(class CameraComponent* camComp);
 	static ID3D12PipelineState* GetPSO(const std::string& name);
-
 	/// <summary>
 	///	If it's not pointing to Main Camera that will be crash 
 	/// </summary>

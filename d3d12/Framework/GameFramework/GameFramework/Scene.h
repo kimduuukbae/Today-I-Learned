@@ -13,10 +13,15 @@ public:
 	template <typename T>
 	T* SpawnObject(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& rot)
 	{
-		this->objects.push_back(std::make_unique<T>());
-		T* tar{ static_cast<T*>(this->objects.back().get()) };
+		auto p{ std::make_unique<T>() };
+		uint32_t layer{ p->GetLayer() };
+
+		objects[layer].push_back(std::move(p));
+
+		T* tar{ static_cast<T*>(objects[layer].back().get()) };
 		tar->Init();
 		tar->GetTransform()->SetTransform(pos, rot);
+
 		return tar;
 	}
 
@@ -29,6 +34,6 @@ private:
 	virtual void Draw(ID3D12GraphicsCommandList* cmdList);
 	void Update(const GameTimer& gt);
 
-	std::vector<std::unique_ptr<Object>> objects;
+	std::unordered_map<int, std::vector<std::unique_ptr<Object>>> objects;
 };
 

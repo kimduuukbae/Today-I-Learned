@@ -1,5 +1,7 @@
 #include "Common.hlsli"
 
+Texture2D gDiffuse : register(t0);
+
 struct VertexIn
 {
 	float3 PosL    : POSITION;
@@ -11,6 +13,7 @@ struct VertexOut
 {
 	float4 PosH    : SV_POSITION;
     float3 PosW    : POSITION;
+    float2 TexCoord : TEXCOORD;
 };
 
 VertexOut VS(VertexIn vin, uint nVertexID : SV_VertexID)
@@ -24,12 +27,14 @@ VertexOut VS(VertexIn vin, uint nVertexID : SV_VertexID)
 
     vout.PosH = mul(posW, gViewProj);
 
+    vout.TexCoord = vin.TexC;
+
     return vout;
 }
 
 float4 PS(VertexOut pin) : SV_Target
 {
-    return float4(1.0f, 1.0f, 1.0f, 1.0f);
+    return gDiffuse.Sample(gSamplerLinearWrap, pin.TexCoord);
 }
 
 

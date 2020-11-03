@@ -19,10 +19,11 @@ void SceneManager::Init()
 	resourceManager = ResourceManager::GetInstance();
 
 	meshManager->Init();
-	resourceManager->Init();
 
 	Commit<GameScene>("GameScene"s);
+	
 	mainScene->Init();
+	resourceManager->Init();
 }
 
 void SceneManager::Draw(ID3D12GraphicsCommandList* cmdList)
@@ -38,5 +39,6 @@ void SceneManager::Update(const GameTimer& gt)
 
 void SceneManager::ClearUploadBuffer()
 {
-	meshManager->ClearUploadBuffer();
+	meshManager->ReleaseUploadBuffer();
+	resourceManager->ReleaseUploadBuffer();
 }

@@ -33,6 +33,7 @@
 #include <fstream>
 #include <tuple>
 #include <type_traits>
+#include <filesystem>
 
 //custom
 #include "GameTimer.h"

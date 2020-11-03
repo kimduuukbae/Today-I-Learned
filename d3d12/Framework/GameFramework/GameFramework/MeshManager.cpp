@@ -20,7 +20,7 @@ void MeshManager::Init()
 	auto cmdList{ D3DApp::GetApp()->GetCommandList() };
 	meshs["Cube"] = std::make_unique<CubeMesh>(2.0f, 2.0f, 2.0f,
 		device, cmdList);
-	meshs["Sphere"] = std::make_unique<SphereMesh>(15.0f, 20, 20,
+	meshs["Sphere"] = std::make_unique<SphereMesh>(1.0f, 5, 5,
 		device, cmdList);
 }
 
@@ -34,7 +34,7 @@ Mesh* MeshManager::GetMeshFromFile(const std::string& path)
 	return nullptr;
 }
 
-void MeshManager::ClearUploadBuffer()
+void MeshManager::ReleaseUploadBuffer()
 {
 	for (auto& it : meshs)
 		static_cast<MeshBase*>(it.second.get())->ReleaseUploadBuffer();

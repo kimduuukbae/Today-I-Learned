@@ -79,10 +79,6 @@ void FrameworkApp::Draw()
 	mCommandList->ClearDepthStencilView(DepthStencilView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 	mCommandList->OMSetRenderTargets(1, &CurrentBackBufferView(), true, &DepthStencilView());
 
-	//ID3D12DescriptorHeap* descriptorHeaps[] = { srvHeap.Get() };
-	//mCommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-	// 같은 타입의 힙은 하나만 달 수 있음!
-
 	sceneManager->Draw(mCommandList.Get());
 
 	// 인덱스 크기, 그릴갯수, 인덱스 시작점, 정점 시작점, 인스턴싱

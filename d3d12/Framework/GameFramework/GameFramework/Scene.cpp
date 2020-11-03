@@ -4,8 +4,10 @@
 
 void Scene::Draw(ID3D12GraphicsCommandList* cmdList)
 {
-	for (auto& it : objects)
-		it->Draw(cmdList);
+	for (auto& container : objects) {
+		for (auto& elem : container.second)
+			elem->Draw(cmdList);
+	}
 }
 
 void Scene::Update(const GameTimer& gt)

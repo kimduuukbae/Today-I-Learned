@@ -13,5 +13,6 @@ public:
 
 private:
 	std::unique_ptr<class MeshComponent> mesh;
+	std::unique_ptr<class TextureComponent> texture;
 };
 

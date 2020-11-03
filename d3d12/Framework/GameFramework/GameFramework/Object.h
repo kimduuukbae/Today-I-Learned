@@ -43,6 +43,9 @@ public:
 	virtual void Update(const GameTimer& gt);
 	virtual void Draw(ID3D12GraphicsCommandList* cmdList) = 0;
 
+	void SetLayer(uint32_t layer);
+	uint32_t GetLayer();
+
 protected:
 	using Super = Object;
 
@@ -51,5 +54,7 @@ private:
 
 	std::unique_ptr<TransformComponent> transform;
 	std::vector<std::unique_ptr<IComponent>> components;
+
+	uint32_t layer{ 0 };
 };
 

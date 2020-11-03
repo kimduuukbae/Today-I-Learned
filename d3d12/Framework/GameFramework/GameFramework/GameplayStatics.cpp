@@ -29,5 +29,5 @@ float GameplayStatics::GetAspectRatio()
 
 Texture* GameplayStatics::GetTexture(const std::filesystem::path& p)
 {
-	return nullptr;
+	return ResourceManager::GetInstance()->LoadTexture(p);
 }

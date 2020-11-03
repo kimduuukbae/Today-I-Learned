@@ -31,3 +31,13 @@ void Object::Update(const GameTimer& gt)
 	for (auto& it : components)
 		it->Update(gt);
 }
+
+void Object::SetLayer(uint32_t layer)
+{
+	this->layer = layer;
+}
+
+uint32_t Object::GetLayer()
+{
+	return layer;
+}

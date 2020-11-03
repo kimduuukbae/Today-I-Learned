@@ -15,7 +15,7 @@ public:
 	Mesh* GetMesh(const std::string& name);
 	Mesh* GetMeshFromFile(const std::string& path);
 
-	void ClearUploadBuffer();
+	void ReleaseUploadBuffer();
 private:
 
 	std::unordered_map<std::string, std::unique_ptr<Mesh>> meshs;

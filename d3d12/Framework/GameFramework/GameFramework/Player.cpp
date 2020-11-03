@@ -19,5 +19,5 @@ void Player::Init()
 
 void Player::Draw(ID3D12GraphicsCommandList* cmdList)
 {
-	
+	//cameraComponent->Walk(-0.0001f);
 }

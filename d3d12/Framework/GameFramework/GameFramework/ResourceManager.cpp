@@ -34,6 +34,7 @@ ResourceManager::~ResourceManager()
 
 void ResourceManager::Init()
 {
+	CreateShaderResourceView();
 	CreateResources();
 	CreateRootSignature();
 	CreatePSO();
@@ -57,8 +58,10 @@ Texture* ResourceManager::LoadTexture(const std::filesystem::path& path)
 	std::filesystem::path prox{ std::filesystem::proximate(path) };
 	std::wstring proxStr{ prox.generic_wstring() };
 
-	if (textures.find(proxStr) == textures.end())
+	if (textures.find(proxStr) == textures.end()) {
 		textures[proxStr] = std::make_unique<Texture>(path.generic_wstring());
+		textures[proxStr]->SetSrvIndex(textures.size() - 1);
+	}
 
 	return textures[proxStr].get();
 }
@@ -66,6 +69,10 @@ Texture* ResourceManager::LoadTexture(const std::filesystem::path& path)
 void ResourceManager::BindingResource(ID3D12GraphicsCommandList* cmdList)
 {
 	cmdList->SetGraphicsRootSignature(rootSignature.Get());
+
+	ID3D12DescriptorHeap* descriptorHeaps[] = { srvHeap.Get() };
+	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+	//같은 타입의 힙은 하나만 달 수 있음!
 
 	PassInfomation pass;
 
@@ -105,7 +112,7 @@ void ResourceManager::CreateRootSignature()
 	*/
 	D3D12_DESCRIPTOR_RANGE srvRange{};
 	srvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	srvRange.NumDescriptors = 1;
+	srvRange.NumDescriptors = 2;
 
 	param[2].DescriptorTable.NumDescriptorRanges = 1;
 	param[2].DescriptorTable.pDescriptorRanges = &srvRange;
@@ -235,4 +242,62 @@ void ResourceManager::CreateResources()
 {
 	D3DApp* app{ D3DApp::GetApp() };
 	passCB = std::make_unique<Buffers::UploadBuffer<PassInfomation>>(app->GetDevice(), 1, true);
+}
+
+void ResourceManager::CreateShaderResourceView()
+{
+	ID3D12Device* device{ D3DApp::GetApp()->GetDevice() };
+	srvIncSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+	D3D12_DESCRIPTOR_HEAP_DESC desc{};
+	desc.NumDescriptors = static_cast<UINT>(textures.size());
+	desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	desc.NodeMask = 0;
+	device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&srvHeap));
+
+	std::vector<Texture*> t(textures.size());
+	auto iterator{ textures.begin() };
+
+	for (auto& it : t) {
+		it = iterator->second.get();
+		++iterator;
+	}
+
+	std::sort(t.begin(), t.end(), [](const Texture* lhs, const Texture* rhs) {
+		return lhs->GetSrvIndex() < rhs->GetSrvIndex();
+		});
+	
+	//D3D12_
+	D3D12_SHADER_RESOURCE_VIEW_DESC srv2DDesc{};
+	srv2DDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srv2DDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srv2DDesc.Texture2D.MostDetailedMip = 0;
+	srv2DDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC srv3DDesc{ srv2DDesc };
+	srv3DDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+	srv3DDesc.TextureCube.MostDetailedMip = 0;
+	srv3DDesc.TextureCube.ResourceMinLODClamp = 0.0f;
+
+	D3D12_CPU_DESCRIPTOR_HANDLE handle{ srvHeap->GetCPUDescriptorHandleForHeapStart() };
+	D3D12_GPU_DESCRIPTOR_HANDLE gHandle{ srvHeap->GetGPUDescriptorHandleForHeapStart() };
+
+	for (auto& it : t) {
+		UINT16 size = it->GetResource()->GetDesc().DepthOrArraySize;
+		
+		if (size == 1) {
+			srv2DDesc.Texture2D.MipLevels = it->GetResource()->GetDesc().MipLevels;
+			srv2DDesc.Format = it->GetResource()->GetDesc().Format;
+			device->CreateShaderResourceView(it->GetResource(), &srv2DDesc, handle);
+		}
+		else if (size == 6) {
+			srv3DDesc.TextureCube.MipLevels = it->GetResource()->GetDesc().MipLevels;
+			srv3DDesc.Format = it->GetResource()->GetDesc().Format;
+			device->CreateShaderResourceView(it->GetResource(), &srv3DDesc, handle);
+		}
+		it->SetHandle(gHandle);
+		handle.ptr += srvIncSize;
+		gHandle.ptr += srvIncSize;
+	}
 }
