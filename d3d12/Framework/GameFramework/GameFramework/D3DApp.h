@@ -40,6 +40,8 @@ protected:
     virtual void OnMouseUp(WPARAM btnState, int x, int y) = 0;
     virtual void OnMouseMove(WPARAM btnState, int x, int y) = 0;
 
+    virtual void OnKeyboardDown(unsigned char key, unsigned char state) {}
+    virtual void OnKeyboardUp(unsigned char key, unsigned char state) {};
 protected:
 
     bool InitMainWindow();

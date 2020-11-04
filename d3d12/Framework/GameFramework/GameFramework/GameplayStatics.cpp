@@ -5,6 +5,7 @@
 #include "MeshManager.h"
 #include "SceneManager.h"
 
+float deltaTime;
 
 void GameplayStatics::SetMainCamera(CameraComponent* camComp)
 {
@@ -30,4 +31,9 @@ float GameplayStatics::GetAspectRatio()
 Texture* GameplayStatics::GetTexture(const std::filesystem::path& p)
 {
 	return ResourceManager::GetInstance()->LoadTexture(p);
+}
+
+float GameplayStatics::GetDeltaTime()
+{
+	return deltaTime;
 }

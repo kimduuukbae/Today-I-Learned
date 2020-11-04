@@ -2,8 +2,10 @@
 #include "FrameworkApp.h"
 #include "SceneManager.h"
 #include "ResourceManager.h"
+#include "InputManager.h"
 #include "GameplayStatics.h"
 #include "d3dx12.h"
+#include <iostream>
 
 using namespace DirectX;
 using namespace Microsoft::WRL;
@@ -13,6 +15,7 @@ FrameworkApp::FrameworkApp(HINSTANCE hInstance) : D3DApp{ hInstance } {}
 
 FrameworkApp::~FrameworkApp() {
 	sceneManager->Release();
+	inputManager->Release();
 }
 
 bool FrameworkApp::Initialize() {
@@ -20,7 +23,7 @@ bool FrameworkApp::Initialize() {
 		return false;
 
 	sceneManager = SceneManager::GetInstance();
-
+	inputManager = InputManager::GetInstance();
 	FailedAssert(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
 	sceneManager->Init();
 
@@ -44,6 +47,7 @@ void FrameworkApp::OnResize()
 void FrameworkApp::Update(const GameTimer& gt) 
 {
 	sceneManager->Update(gt);
+	inputManager->ReleaseEvent();
 }
 
 void FrameworkApp::OnMouseDown(WPARAM btnState, int x, int y) 
@@ -62,6 +66,16 @@ void FrameworkApp::OnMouseUp(WPARAM btnState, int x, int y)
 void FrameworkApp::OnMouseMove(WPARAM btnState, int x, int y)
 {
 	
+}
+
+void FrameworkApp::OnKeyboardDown(unsigned char key, unsigned char state)
+{
+	inputManager->PushEvent(key, state);
+}
+
+void FrameworkApp::OnKeyboardUp(unsigned char key, unsigned char state)
+{
+	inputManager->PushEvent(key, state);
 }
 
 void FrameworkApp::Draw()
@@ -83,7 +97,7 @@ void FrameworkApp::Draw()
 
 	// 인덱스 크기, 그릴갯수, 인덱스 시작점, 정점 시작점, 인스턴싱
 
-	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mDepthStencilBuffer.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE,
+	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET,
 		D3D12_RESOURCE_STATE_PRESENT));
 
 	FailedAssert(mCommandList->Close());

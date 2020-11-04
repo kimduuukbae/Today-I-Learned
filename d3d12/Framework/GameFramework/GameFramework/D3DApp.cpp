@@ -78,6 +78,8 @@ int D3DApp::Run()
 		else
 		{
 			mTimer.Tick();
+			extern float deltaTime;
+			deltaTime = mTimer.DeltaTime();
 
 			if (!mAppPaused)
 			{
@@ -313,7 +315,11 @@ LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	case WM_MOUSEMOVE:
 		OnMouseMove(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 		return 0;
+	case WM_KEYDOWN:
+		OnKeyboardDown(static_cast<unsigned char>(wParam), '\001');
+		return 0;
 	case WM_KEYUP:
+		OnKeyboardUp(static_cast<unsigned char>(wParam), '\000');
 		if (wParam == VK_ESCAPE)
 		{
 			PostQuitMessage(0);

@@ -34,6 +34,7 @@
 #include <tuple>
 #include <type_traits>
 #include <filesystem>
+#include <functional>
 
 //custom
 #include "GameTimer.h"

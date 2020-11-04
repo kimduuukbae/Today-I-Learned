@@ -12,8 +12,9 @@ void Scene::Draw(ID3D12GraphicsCommandList* cmdList)
 
 void Scene::Update(const GameTimer& gt)
 {
-//#if defined(__DEBUG) || defined(_DEBUG)
-//	if(mainCam)
-//#endif
+	for (auto& container : objects) {
+		for (auto& elem : container.second)
+			elem->Update(gt);
+	}
 
 }

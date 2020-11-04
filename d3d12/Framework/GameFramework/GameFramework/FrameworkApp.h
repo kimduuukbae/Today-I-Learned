@@ -1,6 +1,7 @@
 #pragma once
 
 class SceneManager;
+class InputManager;
 
 class FrameworkApp : public D3DApp {
 public:
@@ -20,7 +21,11 @@ private:
 	virtual void OnMouseUp(WPARAM btnState, int x, int y) override;
 	virtual void OnMouseMove(WPARAM btnState, int x, int y) override;
 
+	virtual void OnKeyboardDown(unsigned char key, unsigned char state) override;
+	virtual void OnKeyboardUp(unsigned char key, unsigned char state) override;
+
 	POINT lastMousePos{};
 	SceneManager* sceneManager{ nullptr };
+	InputManager* inputManager{ nullptr };
 };
 
