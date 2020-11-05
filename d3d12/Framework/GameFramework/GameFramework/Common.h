@@ -12,6 +12,17 @@ namespace Math
 			0.0f, 0.0f, 0.0f, 1.0f
 		};
 	}
+
+	constexpr DirectX::XMFLOAT3 CrossProduct(DirectX::XMFLOAT3& v1, DirectX::XMFLOAT3& v2, bool normalize = true)
+	{
+		using namespace DirectX;
+		XMFLOAT3 result;
+		if (normalize)
+			XMStoreFloat3(&result, XMVector3Normalize(XMVector3Cross(XMLoadFloat3(&v1), XMLoadFloat3(&v2))));
+		else
+			XMStoreFloat3(&result, XMVector3Cross(XMLoadFloat3(&v1), XMLoadFloat3(&v2)));
+		return result;
+	}
 }
 
 namespace Buffers

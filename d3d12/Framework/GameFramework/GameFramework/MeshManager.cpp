@@ -22,6 +22,8 @@ void MeshManager::Init()
 		device, cmdList);
 	meshs["Sphere"] = std::make_unique<SphereMesh>(1.0f, 5, 5,
 		device, cmdList);
+	meshs["Landscape"] = std::make_unique<Landscape>(257, 257,
+		device, cmdList);
 }
 
 Mesh* MeshManager::GetMesh(const std::string& name)

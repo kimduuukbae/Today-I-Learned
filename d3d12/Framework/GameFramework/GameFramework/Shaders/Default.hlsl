@@ -16,11 +16,10 @@ struct VertexOut
     float2 TexCoord : TEXCOORD;
 };
 
-VertexOut VS(VertexIn vin, uint nVertexID : SV_VertexID)
+VertexOut VS(VertexIn vin)
 {
 	VertexOut vout = (VertexOut)0.0f;
 	
-    // Transform to world space.
     float4 posW = mul(float4(vin.PosL, 1.0f), gWorld);
 
     vout.PosW = posW.xyz;

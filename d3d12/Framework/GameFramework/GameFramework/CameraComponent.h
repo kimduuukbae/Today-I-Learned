@@ -46,6 +46,9 @@ public:
 	float GetFarWindowHeight()const;
 
 	void Walk(float d);
+	void Strafe(float d);
+	void Pitch(float angle);
+	void RotateY(float angle);
 private:
 	DirectX::XMFLOAT3 position { 0.0f, 0.0f, 0.0f };
 	DirectX::XMFLOAT3 right { 1.0f, 0.0f, 0.0f };

@@ -116,6 +116,7 @@ void ResourceManager::CreateRootSignature()
 
 	param[2].DescriptorTable.NumDescriptorRanges = 1;
 	param[2].DescriptorTable.pDescriptorRanges = &srvRange;
+	param[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
 	D3D12_STATIC_SAMPLER_DESC ssDesc{};
 
@@ -186,6 +187,8 @@ void ResourceManager::CreatePSO()
 
 	ComPtr<ID3DBlob> defaultVS{ CompileShader(L"Shaders\\Default.hlsl", nullptr, "VS", "vs_5_1") };
 	ComPtr<ID3DBlob> defaultPS{ CompileShader(L"Shaders\\Default.hlsl", nullptr, "PS", "ps_5_1") };
+	ComPtr<ID3DBlob> landscapeVS{ CompileShader(L"Shaders\\Landscape.hlsl", nullptr, "VS", "vs_5_1") };
+	ComPtr<ID3DBlob> landscapePS{ CompileShader(L"Shaders\\Landscape.hlsl", nullptr, "PS", "ps_5_1") };
 	ComPtr<ID3DBlob> skyboxVS{ CompileShader(L"Shaders\\Skybox.hlsl", nullptr, "VS", "vs_5_1") };
 	ComPtr<ID3DBlob> skyboxPS{ CompileShader(L"Shaders\\Skybox.hlsl", nullptr, "PS", "ps_5_1") };
 
@@ -221,6 +224,19 @@ void ResourceManager::CreatePSO()
 	opaqueDesc.DSVFormat = app->mDepthStencilFormat;
 
 	app->GetDevice()->CreateGraphicsPipelineState(&opaqueDesc, IID_PPV_ARGS(&psos["Opaque"]));
+
+	opaqueDesc.VS =
+	{
+		reinterpret_cast<BYTE*>(landscapeVS->GetBufferPointer()),
+		landscapeVS->GetBufferSize()
+	};
+	opaqueDesc.PS =
+	{
+		reinterpret_cast<BYTE*>(landscapePS->GetBufferPointer()),
+		landscapePS->GetBufferSize()
+	};
+
+	app->GetDevice()->CreateGraphicsPipelineState(&opaqueDesc, IID_PPV_ARGS(&psos["Landscape"]));
 
 	opaqueDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 	opaqueDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;

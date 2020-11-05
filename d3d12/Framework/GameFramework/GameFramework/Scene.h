@@ -14,15 +14,12 @@ public:
 	T* SpawnObject(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& rot)
 	{
 		auto p{ std::make_unique<T>() };
+		p->Init();
+		p->GetTransform()->SetTransform(pos, rot);
+
 		uint32_t layer{ p->GetLayer() };
-
 		objects[layer].push_back(std::move(p));
-
-		T* tar{ static_cast<T*>(objects[layer].back().get()) };
-		tar->Init();
-		tar->GetTransform()->SetTransform(pos, rot);
-
-		return tar;
+		return static_cast<T*>(objects[layer].back().get());
 	}
 
 protected:

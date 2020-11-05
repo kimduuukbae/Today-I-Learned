@@ -16,3 +16,10 @@ public:
 		ID3D12Device* device, ID3D12GraphicsCommandList* commandList);
 	~SphereMesh();
 };
+
+class Landscape : public Mesh
+{
+public:
+	Landscape(int width, int height, ID3D12Device* device, ID3D12GraphicsCommandList* commandList);
+	~Landscape();
+};

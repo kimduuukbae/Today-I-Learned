@@ -11,6 +11,8 @@ public:
 	void SetPosition(const DirectX::XMFLOAT3& pos);
 	void SetRotation(const DirectX::XMFLOAT3& rot);
 	void SetTransform(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& rot);
+	DirectX::XMFLOAT3 GetPosition();
+
 
 	D3D12_GPU_VIRTUAL_ADDRESS GetResourceAddress();
 

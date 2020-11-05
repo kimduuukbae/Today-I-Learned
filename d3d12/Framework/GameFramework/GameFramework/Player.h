@@ -16,6 +16,11 @@ public:
 	void RightKey();
 	void UpKey();
 	void DownKey();
+
+	void PitchUp();
+	void PitchDown();
+	void RotateLeft();
+	void RotateRight();
 private:
 	std::unique_ptr<class CameraComponent> cameraComponent;
 	class InputComponent* inputComponent;

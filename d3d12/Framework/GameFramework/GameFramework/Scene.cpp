@@ -16,5 +16,4 @@ void Scene::Update(const GameTimer& gt)
 		for (auto& elem : container.second)
 			elem->Update(gt);
 	}
-
 }

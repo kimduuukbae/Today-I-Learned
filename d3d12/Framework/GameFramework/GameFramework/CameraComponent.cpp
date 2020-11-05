@@ -6,7 +6,7 @@ using namespace DirectX;
 
 CameraComponent::CameraComponent()
 {
-	SetLens(0.25f * XM_PI, GameplayStatics::GetAspectRatio() , 1.0f, 1000.0f);
+	SetLens(0.25f * XM_PI, GameplayStatics::GetAspectRatio() , 1.0f, 2000.0f);
 }
 
 CameraComponent::~CameraComponent()
@@ -222,6 +222,41 @@ void CameraComponent::Walk(float d)
 	XMVECTOR l = XMLoadFloat3(&look);
 	XMVECTOR p = XMLoadFloat3(&position);
 	XMStoreFloat3(&position, XMVectorMultiplyAdd(s, l, p));
+
+	UpdateMatrix();
+}
+
+void CameraComponent::Strafe(float d)
+{
+	XMVECTOR s = XMVectorReplicate(d);
+	XMVECTOR r = XMLoadFloat3(&right);
+	XMVECTOR p = XMLoadFloat3(&position);
+	XMStoreFloat3(&position, XMVectorMultiplyAdd(s, r, p));
+
+	UpdateMatrix();
+}
+
+void CameraComponent::Pitch(float angle)
+{
+	// Rotate up and look vector about the right vector.
+
+	XMMATRIX R = XMMatrixRotationAxis(XMLoadFloat3(&right), angle);
+
+	XMStoreFloat3(&up, XMVector3TransformNormal(XMLoadFloat3(&up), R));
+	XMStoreFloat3(&look, XMVector3TransformNormal(XMLoadFloat3(&look), R));
+	
+	UpdateMatrix();
+}
+
+void CameraComponent::RotateY(float angle)
+{
+	// Rotate the basis vectors about the world y-axis.
+
+	XMMATRIX R = XMMatrixRotationY(angle);
+
+	XMStoreFloat3(&right, XMVector3TransformNormal(XMLoadFloat3(&right), R));
+	XMStoreFloat3(&up, XMVector3TransformNormal(XMLoadFloat3(&up), R));
+	XMStoreFloat3(&look, XMVector3TransformNormal(XMLoadFloat3(&look), R));
 
 	UpdateMatrix();
 }
