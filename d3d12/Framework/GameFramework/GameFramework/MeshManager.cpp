@@ -36,6 +36,18 @@ Mesh* MeshManager::GetMeshFromFile(const std::string& path)
 	return nullptr;
 }
 
+Mesh* MeshManager::CreateMesh(std::vector<Vertex>* v, std::vector<uint32_t>* i, D3D_PRIMITIVE_TOPOLOGY pTopology, const std::string& name)
+{
+	if (meshs.find(name) != meshs.end())
+		return nullptr;
+
+	meshs[name] = std::make_unique<CustomMesh>();
+	auto p = static_cast<CustomMesh*>(meshs[name].get());
+	p->CreateMesh(v, i, pTopology, name);
+	
+	return p;
+}
+
 void MeshManager::ReleaseUploadBuffer()
 {
 	for (auto& it : meshs)

@@ -25,3 +25,8 @@ void TextureComponent::BindingResource(ID3D12GraphicsCommandList* cmdList)
 {
 	texture->BindingResource(cmdList);
 }
+
+void TextureComponent::AddTexture(Texture* texture)
+{
+	this->tCluster.push_back(texture);
+}

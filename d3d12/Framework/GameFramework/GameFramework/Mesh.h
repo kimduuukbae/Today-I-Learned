@@ -46,6 +46,7 @@ protected:
 	DXGI_FORMAT iFormat{};
 
 	uint32_t iCount{};
+	uint32_t vCount{};
 
 	D3D12_PRIMITIVE_TOPOLOGY primTopology{ D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST };
 };
@@ -59,6 +60,21 @@ public:
 	void BindingResource(ID3D12GraphicsCommandList* cmdList);
 	void Draw(ID3D12GraphicsCommandList* cmdList);
 protected:
-	using Super = Mesh;
+	using Super = MeshBase;
 };
 
+class CustomMesh : public Mesh
+{
+public:
+	CustomMesh();
+
+	Mesh* CreateMesh(
+		std::vector<Vertex>* v,
+		std::vector<uint32_t>* i,
+		D3D12_PRIMITIVE_TOPOLOGY pTopology,
+		const std::string& meshName);
+	virtual ~CustomMesh();
+
+protected:
+	using Super = Mesh;
+};

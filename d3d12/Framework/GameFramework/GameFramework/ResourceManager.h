@@ -40,7 +40,7 @@ private:
 	std::unique_ptr<Buffers::UploadBuffer<PassInfomation>> passCB{ nullptr };
 
 	std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12PipelineState>> psos;
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> rootSignature{ nullptr };
+	std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12RootSignature>> signature;
 
 	std::unordered_map<std::wstring, std::unique_ptr<Texture>> textures;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> srvHeap{ nullptr };

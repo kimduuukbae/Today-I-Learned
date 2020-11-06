@@ -15,6 +15,8 @@ public:
 	Mesh* GetMesh(const std::string& name);
 	Mesh* GetMeshFromFile(const std::string& path);
 
+	Mesh* CreateMesh(std::vector<struct Vertex>* v, std::vector<uint32_t>* i,
+		D3D_PRIMITIVE_TOPOLOGY pTopology, const std::string& name);
 	void ReleaseUploadBuffer();
 private:
 

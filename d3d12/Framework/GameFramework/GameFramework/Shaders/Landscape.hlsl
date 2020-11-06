@@ -1,7 +1,7 @@
 #include "Common.hlsli"
 
 Texture2D gLandScapeTexture : register(t0);
-Texture2D gHeightTexture : register(t1);
+Texture2D gLandScapeDetailTexture : register(t1);
 
 struct VertexIn
 {
@@ -15,17 +15,12 @@ struct VertexOut
 	float4 PosH    : SV_POSITION;
 	float3 PosW    : POSITION;
 	float2 TexCoord : TEXCOORD;
+	float2 DetailTexCoord : DTEXCOORD;
 };
 
-VertexOut VS(VertexIn vin)
+VertexOut VS(VertexIn vin, uint vID : SV_VertexID)
 {
 	VertexOut vout;
-
-	float offset = gHeightTexture.SampleLevel(gSamplerLinearWrap, vin.TexC, 0).r;
-
-	offset = 2.0f * offset - 1.0f;
-
-	vin.PosL.y += 140.0f * offset;
 
 	// Transform to world space.
 	float4 posW = mul(float4(vin.PosL, 1.0f), gWorld);
@@ -36,10 +31,16 @@ VertexOut VS(VertexIn vin)
 
 	vout.TexCoord = vin.TexC;
 
+	vout.DetailTexCoord = float2((float(vID) / 257.0f) * 0.25f, float(vID % 257) * 0.25f);
+
 	return vout;
 }
 
 float4 PS(VertexOut pin) : SV_Target
 {
-	return gLandScapeTexture.Sample(gSamplerLinearWrap, pin.TexCoord);
+	float4 base = gLandScapeTexture.Sample(gSamplerLinearWrap, pin.TexCoord);
+	float4 detail = gLandScapeDetailTexture.Sample(gSamplerLinearWrap, pin.DetailTexCoord);
+	
+	float4 color = saturate(lerp(base, detail, 0.5f));
+	return color;
 }

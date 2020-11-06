@@ -2,6 +2,7 @@
 
 class Mesh;
 class Material;
+struct Vertex;
 
 class MeshComponent
 {

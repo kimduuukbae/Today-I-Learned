@@ -17,11 +17,14 @@ void Terrain::Init()
 
 	texture = AddComponent<TextureComponent>();
 	texture->SetTexture(GameplayStatics::GetTexture("Textures\\Base_Texture.dds"));
-	SetLayer(0);
+	texture->AddTexture(GameplayStatics::GetTexture("Textures\\Detail_Texture.dds"));
+	SetLayer(1);
 }
 
 void Terrain::Draw(ID3D12GraphicsCommandList* cmdList)
 {
+	cmdList->SetPipelineState(GameplayStatics::GetPSO("Landscape"));
+
 	mesh->BindingResource(cmdList);
 	texture->BindingResource(cmdList);
 	cmdList->SetGraphicsRootConstantBufferView(0, GetTransform()->GetResourceAddress());

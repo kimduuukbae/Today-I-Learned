@@ -68,7 +68,7 @@ Texture* ResourceManager::LoadTexture(const std::filesystem::path& path)
 
 void ResourceManager::BindingResource(ID3D12GraphicsCommandList* cmdList)
 {
-	cmdList->SetGraphicsRootSignature(rootSignature.Get());
+	cmdList->SetGraphicsRootSignature(signature["Default"].Get());
 
 	ID3D12DescriptorHeap* descriptorHeaps[] = { srvHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
@@ -178,7 +178,12 @@ void ResourceManager::CreateRootSignature()
 	ComPtr<ID3DBlob> serializeBlob{}, errorBlob{};
 	D3D12SerializeRootSignature(&desc, D3D_ROOT_SIGNATURE_VERSION_1, serializeBlob.GetAddressOf(), errorBlob.GetAddressOf());
 	device->CreateRootSignature(0, serializeBlob->GetBufferPointer(), serializeBlob->GetBufferSize()
-		, IID_PPV_ARGS(rootSignature.GetAddressOf()));
+		, IID_PPV_ARGS(&signature["Default"]));
+
+	serializeBlob->Release();
+
+	//D3D12SerializeRootSignature(&desc, D3D_ROOT_SIGNATURE_VERSION_1, serializeBlob.GetAddressOf(),
+		//device->CreateRootSignature(0, ))
 }
 
 void ResourceManager::CreatePSO()
@@ -187,10 +192,16 @@ void ResourceManager::CreatePSO()
 
 	ComPtr<ID3DBlob> defaultVS{ CompileShader(L"Shaders\\Default.hlsl", nullptr, "VS", "vs_5_1") };
 	ComPtr<ID3DBlob> defaultPS{ CompileShader(L"Shaders\\Default.hlsl", nullptr, "PS", "ps_5_1") };
+	
 	ComPtr<ID3DBlob> landscapeVS{ CompileShader(L"Shaders\\Landscape.hlsl", nullptr, "VS", "vs_5_1") };
+	
 	ComPtr<ID3DBlob> landscapePS{ CompileShader(L"Shaders\\Landscape.hlsl", nullptr, "PS", "ps_5_1") };
 	ComPtr<ID3DBlob> skyboxVS{ CompileShader(L"Shaders\\Skybox.hlsl", nullptr, "VS", "vs_5_1") };
 	ComPtr<ID3DBlob> skyboxPS{ CompileShader(L"Shaders\\Skybox.hlsl", nullptr, "PS", "ps_5_1") };
+	
+	ComPtr<ID3DBlob> billBoardVS{ CompileShader(L"Shaders\\Billboard.hlsl", nullptr, "VS", "vs_5_1") };
+	ComPtr<ID3DBlob> billBoardGS{ CompileShader(L"Shaders\\Billboard.hlsl", nullptr, "GS", "gs_5_1") };
+	ComPtr<ID3DBlob> billBoardPS{ CompileShader(L"Shaders\\Billboard.hlsl", nullptr, "PS", "ps_5_1") };
 
 	std::vector<D3D12_INPUT_ELEMENT_DESC> inputLayout
 	{
@@ -201,7 +212,7 @@ void ResourceManager::CreatePSO()
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC opaqueDesc{};
 	opaqueDesc.InputLayout = { inputLayout.data(), static_cast<UINT>(inputLayout.size()) };
-	opaqueDesc.pRootSignature = rootSignature.Get();
+	opaqueDesc.pRootSignature = signature["Default"].Get();
 	opaqueDesc.VS = 
 	{
 		reinterpret_cast<BYTE*>(defaultVS->GetBufferPointer()),
@@ -238,6 +249,26 @@ void ResourceManager::CreatePSO()
 
 	app->GetDevice()->CreateGraphicsPipelineState(&opaqueDesc, IID_PPV_ARGS(&psos["Landscape"]));
 
+	opaqueDesc.VS =
+	{
+		reinterpret_cast<BYTE*>(billBoardVS->GetBufferPointer()),
+		billBoardVS->GetBufferSize()
+	};
+	opaqueDesc.GS =
+	{
+		reinterpret_cast<BYTE*>(billBoardGS->GetBufferPointer()),
+		billBoardGS->GetBufferSize()
+	};
+	opaqueDesc.PS =
+	{
+		reinterpret_cast<BYTE*>(billBoardPS->GetBufferPointer()),
+		billBoardPS->GetBufferSize()
+	};
+	opaqueDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
+	app->GetDevice()->CreateGraphicsPipelineState(&opaqueDesc, IID_PPV_ARGS(&psos["Billboard"]));
+
+	opaqueDesc.GS = {};
+	opaqueDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 	opaqueDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 	opaqueDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
 	opaqueDesc.VS =
