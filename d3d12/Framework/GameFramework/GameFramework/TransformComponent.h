@@ -13,6 +13,7 @@ public:
 	void SetTransform(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& rot);
 	DirectX::XMFLOAT3 GetPosition();
 
+	DirectX::XMFLOAT4X4& GetTransformDirect();
 
 	D3D12_GPU_VIRTUAL_ADDRESS GetResourceAddress();
 

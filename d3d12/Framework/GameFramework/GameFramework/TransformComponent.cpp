@@ -41,6 +41,11 @@ DirectX::XMFLOAT3 TransformComponent::GetPosition()
 	return position;
 }
 
+DirectX::XMFLOAT4X4& TransformComponent::GetTransformDirect()
+{
+	return worldMatrix;
+}
+
 D3D12_GPU_VIRTUAL_ADDRESS TransformComponent::GetResourceAddress()
 {
 	return cBuffer->GetResource()->GetGPUVirtualAddress();

@@ -6,6 +6,10 @@ Object::Object()
 	transform = AddComponent<TransformComponent>();
 }
 
+Object::~Object()
+{
+}
+
 void Object::SetTransform(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& rot)
 {
 	transform->SetTransform(pos, rot);

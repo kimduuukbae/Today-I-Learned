@@ -86,19 +86,27 @@ void FrameworkApp::Draw()
 	mCommandList->RSSetViewports(1, &mScreenViewport);
 	mCommandList->RSSetScissorRects(1, &mScissorRect);
 
-	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT,
-		D3D12_RESOURCE_STATE_RENDER_TARGET));
+	const auto&& prTransition{ CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT,
+		D3D12_RESOURCE_STATE_RENDER_TARGET) };
+
+	mCommandList->ResourceBarrier(1, &prTransition);
 
 	mCommandList->ClearRenderTargetView(CurrentBackBufferView(), Colors::Brown, 0, nullptr);
 	mCommandList->ClearDepthStencilView(DepthStencilView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
-	mCommandList->OMSetRenderTargets(1, &CurrentBackBufferView(), true, &DepthStencilView());
+	
+	const auto&& curBackBufferView{ CurrentBackBufferView() };
+	const auto&& curDepthStencilView{ DepthStencilView() };
+
+	mCommandList->OMSetRenderTargets(1, &curBackBufferView, true, &curDepthStencilView);
 
 	sceneManager->Draw(mCommandList.Get());
 
 	// 인덱스 크기, 그릴갯수, 인덱스 시작점, 정점 시작점, 인스턴싱
 
-	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET,
-		D3D12_RESOURCE_STATE_PRESENT));
+	const auto&& rpTransition{ CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET,
+		D3D12_RESOURCE_STATE_PRESENT) };
+
+	mCommandList->ResourceBarrier(1, &rpTransition);
 
 	FailedAssert(mCommandList->Close());
 

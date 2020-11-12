@@ -17,6 +17,7 @@ public:
 	ID3D12PipelineState* GetPSO(const std::string& name);
 
 	Texture* LoadTexture(const std::filesystem::path& path);
+	Texture* LoadTextureFromFile(FILE* file);
 
 private:
 	friend class SceneManager;

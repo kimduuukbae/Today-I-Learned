@@ -26,25 +26,44 @@ void MeshManager::Init()
 		device, cmdList);
 }
 
-Mesh* MeshManager::GetMesh(const std::string& name)
+MeshBase* MeshManager::GetMesh(const std::string& name)
 {
 	return meshs[name].get();
 }
 
-Mesh* MeshManager::GetMeshFromFile(const std::string& path)
+MeshBase* MeshManager::GetMeshFromFile(const std::string& path)
 {
 	return nullptr;
 }
 
-Mesh* MeshManager::CreateMesh(std::vector<Vertex>* v, std::vector<uint32_t>* i, D3D_PRIMITIVE_TOPOLOGY pTopology, const std::string& name)
+MeshBase* MeshManager::CreateMesh(std::vector<Vertex>* v, std::vector<uint32_t>* i, D3D_PRIMITIVE_TOPOLOGY pTopology, const std::string& name)
 {
 	if (meshs.find(name) != meshs.end())
 		return nullptr;
 
-	meshs[name] = std::make_unique<CustomMesh>();
-	auto p = static_cast<CustomMesh*>(meshs[name].get());
-	p->CreateMesh(v, i, pTopology, name);
-	
+	if (i != nullptr) {
+		meshs[name] = std::make_unique<CustomIndexMesh>();
+		auto p = static_cast<CustomIndexMesh*>(meshs[name].get());
+		p->CreateMesh(v, i, pTopology, name);
+	}
+	else {
+		meshs[name] = std::make_unique<CustomVertexMesh>();
+		auto p = static_cast<CustomVertexMesh*>(meshs[name].get());
+		p->CreateMesh(v, pTopology, name);
+	}
+
+	return meshs[name].get();
+}
+
+MeshBase* MeshManager::CreateFrameMesh(std::vector<struct Vertex>* v, std::vector<std::vector<uint32_t>>* indexCluster, D3D_PRIMITIVE_TOPOLOGY pTopology, const std::string& name)
+{
+	meshs[name] = std::make_unique<FrameMesh>();
+	auto p = static_cast<FrameMesh*>(meshs[name].get());
+
+	p->SetVertex(*v);
+	for (auto& it : *indexCluster)
+		p->AddSubMesh(it);
+
 	return p;
 }
 

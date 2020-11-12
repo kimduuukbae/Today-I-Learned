@@ -2,7 +2,7 @@
 
 #include "Singleton.h"
 
-class Mesh;
+class MeshBase;
 
 class MeshManager : public Singleton<MeshManager>
 {
@@ -12,14 +12,17 @@ public:
 
 	void Init();
 
-	Mesh* GetMesh(const std::string& name);
-	Mesh* GetMeshFromFile(const std::string& path);
+	MeshBase* GetMesh(const std::string& name);
+	MeshBase* GetMeshFromFile(const std::string& path);
 
-	Mesh* CreateMesh(std::vector<struct Vertex>* v, std::vector<uint32_t>* i,
+	MeshBase* CreateMesh(std::vector<struct Vertex>* v, std::vector<uint32_t>* i,
+		D3D_PRIMITIVE_TOPOLOGY pTopology, const std::string& name);
+	MeshBase* CreateFrameMesh(std::vector<struct Vertex>* v,
+		std::vector<std::vector<uint32_t>>* indexCluster,
 		D3D_PRIMITIVE_TOPOLOGY pTopology, const std::string& name);
 	void ReleaseUploadBuffer();
 private:
 
-	std::unordered_map<std::string, std::unique_ptr<Mesh>> meshs;
+	std::unordered_map<std::string, std::unique_ptr<MeshBase>> meshs;
 };
 

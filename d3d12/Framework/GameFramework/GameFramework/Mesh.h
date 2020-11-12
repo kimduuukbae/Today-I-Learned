@@ -17,36 +17,28 @@ struct Vertex
 	Vertex() = default;
 };
 
-// Dynamic Buffers
 class MeshBase
 {
 public:
 	MeshBase();
 	virtual ~MeshBase();
 
-	void ReleaseUploadBuffer();
-
+	virtual void ReleaseUploadBuffer();
+	virtual void BindingResource(ID3D12GraphicsCommandList* cmdList);
+	virtual void Draw(ID3D12GraphicsCommandList* cmdList) = 0;
 protected:
 
 	using Super = MeshBase;
 
 	D3D12_VERTEX_BUFFER_VIEW GetVertexBufferView();
-	D3D12_INDEX_BUFFER_VIEW GetIndexBufferView();
 
 	Microsoft::WRL::ComPtr<ID3D12Resource> vBuffer{ nullptr };
-	Microsoft::WRL::ComPtr<ID3D12Resource> iBuffer{ nullptr };
-
 	Microsoft::WRL::ComPtr<ID3D12Resource> vUploadBuffer{ nullptr };
-	Microsoft::WRL::ComPtr<ID3D12Resource> iUploadBuffer{ nullptr };
 
-	uint32_t vByteStride{};
-	uint32_t vByteSize{};
+	uint32_t vByteStride{ 0 };
+	uint32_t vByteSize{ 0 };
 
-	uint32_t iByteSize{};
-	DXGI_FORMAT iFormat{};
-
-	uint32_t iCount{};
-	uint32_t vCount{};
+	uint32_t vCount{ 0 };
 
 	D3D12_PRIMITIVE_TOPOLOGY primTopology{ D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST };
 };
@@ -57,24 +49,96 @@ public:
 	Mesh();
 	virtual ~Mesh();
 
-	void BindingResource(ID3D12GraphicsCommandList* cmdList);
-	void Draw(ID3D12GraphicsCommandList* cmdList);
+	virtual void BindingResource(ID3D12GraphicsCommandList* cmdList) override;
+	virtual void Draw(ID3D12GraphicsCommandList* cmdList) override;
+	virtual void ReleaseUploadBuffer() override;
+protected:
+	using Super = MeshBase;
+
+	D3D12_INDEX_BUFFER_VIEW GetIndexBufferView();
+
+	Microsoft::WRL::ComPtr<ID3D12Resource> iBuffer{ nullptr };
+	Microsoft::WRL::ComPtr<ID3D12Resource> iUploadBuffer{ nullptr };
+
+	uint32_t iByteSize{ 0 };
+	uint32_t iCount{ 0 };
+	DXGI_FORMAT iFormat{ DXGI_FORMAT_R32_UINT };
+};
+
+class FrameMesh : public MeshBase
+{
+public:
+	FrameMesh();
+	virtual ~FrameMesh();
+
+	virtual void ReleaseUploadBuffer() override;
+	virtual void BindingResource(ID3D12GraphicsCommandList* cmdList) override;
+	virtual void Draw(ID3D12GraphicsCommandList* cmdList) override;
+	void SetVertex(const std::vector<Vertex>& vertices);
+	void AddSubMesh(const std::vector<uint32_t>& indices);
+
+protected:
+	using Super = MeshBase;
+
+	D3D12_INDEX_BUFFER_VIEW GetIndexBufferView(size_t where);
+
+	struct IBufferCluster
+	{
+		Microsoft::WRL::ComPtr<ID3D12Resource> subIBuffer{ nullptr };
+		uint32_t iByteSize{ 0 };
+		uint32_t iCount{ 0 };
+	};
+
+	std::vector<IBufferCluster> subIBuffers;
+	std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> subIUploadBuffers;
+
+	DXGI_FORMAT iFormat{ DXGI_FORMAT_R32_UINT };
+};
+
+class CustomVertexMesh : public MeshBase
+{
+public:
+	CustomVertexMesh();
+	virtual ~CustomVertexMesh();
+
+	virtual void BindingResource(ID3D12GraphicsCommandList* cmdList) override;
+	virtual void ReleaseUploadBuffer() override;
+	virtual void Draw(ID3D12GraphicsCommandList* cmdList) override;
+
+	MeshBase* CreateMesh(
+		std::vector<Vertex>* v,
+		D3D12_PRIMITIVE_TOPOLOGY pTopology,
+		const std::string& meshName);
+
 protected:
 	using Super = MeshBase;
 };
 
-class CustomMesh : public Mesh
+class CustomIndexMesh : public CustomVertexMesh
 {
 public:
-	CustomMesh();
+	CustomIndexMesh();
+	virtual ~CustomIndexMesh();
 
-	Mesh* CreateMesh(
+	virtual void BindingResource(ID3D12GraphicsCommandList* cmdList);
+	virtual void ReleaseUploadBuffer() override;
+	virtual void Draw(ID3D12GraphicsCommandList* cmdList) override;
+
+	MeshBase* CreateMesh(
 		std::vector<Vertex>* v,
 		std::vector<uint32_t>* i,
 		D3D12_PRIMITIVE_TOPOLOGY pTopology,
 		const std::string& meshName);
-	virtual ~CustomMesh();
 
 protected:
-	using Super = Mesh;
+	using Super = CustomVertexMesh;
+
+	D3D12_INDEX_BUFFER_VIEW GetIndexBufferView();
+
+	Microsoft::WRL::ComPtr<ID3D12Resource> iBuffer{ nullptr };
+	Microsoft::WRL::ComPtr<ID3D12Resource> iUploadBuffer{ nullptr };
+
+	uint32_t iByteSize{ 0 };
+	uint32_t iCount{ 0 };
+	DXGI_FORMAT iFormat{ DXGI_FORMAT_R32_UINT };
 };

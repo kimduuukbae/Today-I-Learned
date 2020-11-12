@@ -66,6 +66,32 @@ Texture* ResourceManager::LoadTexture(const std::filesystem::path& path)
 	return textures[proxStr].get();
 }
 
+Texture* ResourceManager::LoadTextureFromFile(FILE* file)
+{
+	char pstrTextureName[64] = { '\0' };
+
+	BYTE nStrLength = 64;
+	UINT nReads = (UINT)::fread(&nStrLength, sizeof(BYTE), 1, file);
+	nReads = (UINT)::fread(pstrTextureName, sizeof(char), nStrLength, file);
+	pstrTextureName[nStrLength] = '\0';
+
+	bool bDuplicated = false;
+	bool bLoaded = false;
+	if (strcmp(pstrTextureName, "null"))
+	{
+		bLoaded = true;
+		char pstrFilePath[64] = { '\0' };
+		strcpy_s(pstrFilePath, 64, "Model/Textures/");
+
+		bDuplicated = (pstrTextureName[0] == '@');
+		strcpy_s(pstrFilePath + 15, 64 - 15, (bDuplicated) ? (pstrTextureName + 1) : pstrTextureName);
+		strcpy_s(pstrFilePath + 15 + ((bDuplicated) ? (nStrLength - 1) : nStrLength), 64 - 15 - ((bDuplicated) ? (nStrLength - 1) : nStrLength), ".dds");
+
+		return LoadTexture(pstrFilePath);
+	}
+	return nullptr;
+}
+
 void ResourceManager::BindingResource(ID3D12GraphicsCommandList* cmdList)
 {
 	cmdList->SetGraphicsRootSignature(signature["Default"].Get());

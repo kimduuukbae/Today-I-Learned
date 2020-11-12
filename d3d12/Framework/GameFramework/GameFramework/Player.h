@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Object.h"
+#include "Frame.h"
 
 class Player : public Object
 {
@@ -11,6 +11,8 @@ public:
 	virtual void Init() override;
 	virtual void Draw(ID3D12GraphicsCommandList* cmdList) override;
 
+	void LoadFrameHierarchyFromFile();
+	void LoadMaterials(FILE* pInFile);
 
 	void LeftKey();
 	void RightKey();
@@ -24,5 +26,7 @@ public:
 private:
 	std::unique_ptr<class CameraComponent> cameraComponent;
 	class InputComponent* inputComponent;
+
+	std::unique_ptr<Frame> frame;
 };
 

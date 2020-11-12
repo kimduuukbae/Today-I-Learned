@@ -9,7 +9,7 @@ class Object
 {
 public:
 	Object();
-	virtual ~Object() = default;
+	virtual ~Object();
 
 	void SetTransform(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& rot);
 	void SetPosition(const DirectX::XMFLOAT3& pos);

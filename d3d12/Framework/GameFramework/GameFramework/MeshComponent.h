@@ -1,22 +1,22 @@
 #pragma once
 
-class Mesh;
+class MeshBase;
 class Material;
 struct Vertex;
 
 class MeshComponent
 {
 public:
-	MeshComponent() = default;
-	~MeshComponent() = default;
+	MeshComponent();
+	~MeshComponent();
 
-	void SetMesh(Mesh* target);
+	void SetMesh(MeshBase* target);
 	void SetMaterial(Material* mat);
 
 	void BindingResource(ID3D12GraphicsCommandList* cmdList);
 	void Draw(ID3D12GraphicsCommandList* cmdList);
 private:
-	Mesh* mesh{ nullptr };
+	MeshBase* mesh{ nullptr };
 	Material* material{ nullptr };
 };
 

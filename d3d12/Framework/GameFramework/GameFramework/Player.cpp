@@ -27,9 +27,27 @@ void Player::Init()
 	inputComponent->BindInput('K', true, [this]() { PitchDown(); });
 	inputComponent->BindInput('J', true, [this]() { RotateLeft(); });
 	inputComponent->BindInput('L', true, [this]() { RotateRight(); });
+
+	LoadFrameHierarchyFromFile();
 }
 
 void Player::Draw(ID3D12GraphicsCommandList* cmdList)
+{
+	frame->Draw(cmdList);
+}
+
+void Player::LoadFrameHierarchyFromFile()
+{
+	using namespace DirectX;
+
+	FILE* pInFile = NULL;
+	::fopen_s(&pInFile, "Models\\SuperCobra.bin", "rb");
+	::rewind(pInFile);
+
+	frame = Frame::LoadFrameHierarchyFromFile(pInFile);
+}
+
+void Player::LoadMaterials(FILE* pInFile)
 {
 
 }
