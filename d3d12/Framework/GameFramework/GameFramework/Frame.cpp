@@ -5,14 +5,11 @@
 #include "MeshManager.h"
 #include "ResourceManager.h"
 #include "TextureComponent.h"
+#include "Common.h"
 
-Frame::Frame()
-{
-}
+Frame::Frame(){}
 
-Frame::~Frame()
-{
-}
+Frame::~Frame(){}
 
 void Frame::Init()
 {
@@ -23,13 +20,20 @@ void Frame::Init()
 
 void Frame::Draw(ID3D12GraphicsCommandList* cmdList)
 {
-	if (mesh) {
+	if (mesh->IsBindingMesh()) {
 		mesh->BindingResource(cmdList);
+		texture->BindingResource(cmdList);
 		cmdList->SetGraphicsRootConstantBufferView(0, GetTransform()->GetResourceAddress());
 		mesh->Draw(cmdList);
 	}
+
 	for (auto& elem : childs)
 		elem->Draw(cmdList);
+}
+
+void Frame::Update(const GameTimer& gt)
+{
+	Super::Update(gt);
 }
 
 void Frame::AddChild(std::unique_ptr<Frame>&& child)
@@ -152,7 +156,7 @@ void Frame::LoadMeshFromFile(FILE* pInFile)
 				XMFLOAT3* m_pxmf3BiTangents = new XMFLOAT3[nBiTangents];
 				nReads = (UINT)::fread(m_pxmf3BiTangents, sizeof(XMFLOAT3), nBiTangents, pInFile);
 
-				delete m_pxmf3BiTangents;
+				delete[] m_pxmf3BiTangents;
 			}
 		}
 		else if (!strcmp(pstrToken, "<SubMeshes>:"))
@@ -288,6 +292,29 @@ void Frame::LoadMaterialsFromFile(FILE* pInFile)
 	}
 }
 
+void Frame::UpdateMeshMatrix(DirectX::XMFLOAT4X4* mat)
+{
+	DirectX::XMFLOAT4X4& worldMat{ GetTransform()->GetTransformDirect() };
+	worldMat = (mat) ? Math::Multiply(trsf, *mat) : trsf;
+
+	GetTransform()->UpdateMatrix();
+
+	for (auto& it : childs)
+		it->UpdateMeshMatrix(&worldMat);
+}
+
+Frame* Frame::FindFrame(const std::string_view& frameName)
+{
+	if (this->frameName == frameName)
+		return this;
+
+	for (auto& it : childs)
+		if (auto p = it->FindFrame(frameName); p)
+			return p;
+	
+	return nullptr;
+}
+
 
 std::unique_ptr<Frame> Frame::LoadFrameHierarchyFromFile(FILE* pInFile)
 {
@@ -320,6 +347,7 @@ std::unique_ptr<Frame> Frame::LoadFrameHierarchyFromFile(FILE* pInFile)
 			nReads = (UINT)::fread(&nStrLength, sizeof(BYTE), 1, pInFile);
 			nReads = (UINT)::fread(partsName, sizeof(char), nStrLength, pInFile);
 			partsName[nStrLength] = '\0';
+			object->frameName = partsName;
 		}
 		else if (!strcmp(pstrToken, "<Transform>:"))
 		{
@@ -332,7 +360,7 @@ std::unique_ptr<Frame> Frame::LoadFrameHierarchyFromFile(FILE* pInFile)
 		}
 		else if (!strcmp(pstrToken, "<TransformMatrix>:"))
 		{
-			nReads = (UINT)::fread(&object->GetTransform()->GetTransformDirect(), sizeof(float), 16, pInFile);
+			nReads = (UINT)::fread(&object->trsf, sizeof(float), 16, pInFile);
 		}
 		else if (!strcmp(pstrToken, "<Mesh>:"))
 		{
@@ -361,4 +389,9 @@ std::unique_ptr<Frame> Frame::LoadFrameHierarchyFromFile(FILE* pInFile)
 		}
 	}
 	return std::move(object);
+}
+
+DirectX::XMFLOAT4X4& Frame::GetLocalTransform()
+{
+	return trsf;
 }

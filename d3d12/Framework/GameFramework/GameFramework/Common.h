@@ -13,14 +13,113 @@ namespace Math
 		};
 	}
 
-	constexpr DirectX::XMFLOAT3 CrossProduct(DirectX::XMFLOAT3& v1, DirectX::XMFLOAT3& v2, bool normalize = true)
+	inline DirectX::XMFLOAT3 CrossProduct(DirectX::XMFLOAT3& v1, DirectX::XMFLOAT3& v2, bool normalize = true)
 	{
-		using namespace DirectX;
-		XMFLOAT3 result;
+		DirectX::XMFLOAT3 result;
 		if (normalize)
-			XMStoreFloat3(&result, XMVector3Normalize(XMVector3Cross(XMLoadFloat3(&v1), XMLoadFloat3(&v2))));
+			DirectX::XMStoreFloat3(&result, 
+				DirectX::XMVector3Normalize(DirectX::XMVector3Cross(DirectX::XMLoadFloat3(&v1), DirectX::XMLoadFloat3(&v2))));
 		else
-			XMStoreFloat3(&result, XMVector3Cross(XMLoadFloat3(&v1), XMLoadFloat3(&v2)));
+			DirectX::XMStoreFloat3(&result, DirectX::XMVector3Cross(DirectX::XMLoadFloat3(&v1), DirectX::XMLoadFloat3(&v2)));
+		return result;
+	}
+
+	inline DirectX::XMFLOAT4X4 Multiply(const DirectX::XMFLOAT4X4& mat1,
+		const DirectX::XMFLOAT4X4& mat2)
+	{
+		DirectX::XMFLOAT4X4 result;
+		DirectX::XMStoreFloat4x4(&result, DirectX::XMLoadFloat4x4(&mat1) * DirectX::XMLoadFloat4x4(&mat2));
+		return result;
+	}
+
+	inline DirectX::XMFLOAT4X4 Multiply(const DirectX::XMFLOAT4X4& mat1,
+		const DirectX::XMMATRIX& mat2)
+	{
+		DirectX::XMFLOAT4X4 result;
+		DirectX::XMStoreFloat4x4(&result, DirectX::XMLoadFloat4x4(&mat1) * mat2);
+		return result;
+	}
+
+	inline DirectX::XMFLOAT4X4 Multiply(const DirectX::XMMATRIX& mat1,
+		const DirectX::XMFLOAT4X4& mat2)
+	{
+		DirectX::XMFLOAT4X4 result;
+		DirectX::XMStoreFloat4x4(&result, mat1 * DirectX::XMLoadFloat4x4(&mat2));
+		return result;
+	}
+
+	inline DirectX::XMFLOAT3 TransformCoord(const DirectX::XMFLOAT3& vector,
+		const DirectX::XMMATRIX& mat)
+	{
+		DirectX::XMFLOAT3 xmf3Result;
+		DirectX::XMStoreFloat3(&xmf3Result, DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&vector), mat));
+		return(xmf3Result);
+	}
+
+	inline DirectX::XMFLOAT3 TransformCoord(const DirectX::XMFLOAT3& vector, 
+		const DirectX::XMFLOAT4X4& mat)
+	{
+		return(TransformCoord(vector, DirectX::XMLoadFloat4x4(&mat)));
+	}
+
+	inline DirectX::XMFLOAT3 TransformNormal(const DirectX::XMFLOAT3& vector, 
+		const DirectX::XMMATRIX& mat)
+	{
+		DirectX::XMFLOAT3 result;
+		DirectX::XMStoreFloat3(&result, XMVector3TransformNormal(DirectX::XMLoadFloat3(&vector), mat));
+		return result;
+	}
+
+	inline DirectX::XMFLOAT3 Vector3Normalize(const DirectX::XMFLOAT3& vector)
+	{
+		DirectX::XMFLOAT3 result;
+		DirectX::XMStoreFloat3(&result, DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&vector)));
+		return result;
+	}
+
+	inline DirectX::XMFLOAT3 MultiplyScalar(const DirectX::XMFLOAT3& vector, float scalar)
+	{
+		DirectX::XMFLOAT3 result;
+		DirectX::XMStoreFloat3(&result, DirectX::XMVectorScale(DirectX::XMLoadFloat3(&vector), scalar));
+		return result;
+	}
+
+	inline DirectX::XMFLOAT3 Add(const DirectX::XMFLOAT3& vector1, const DirectX::XMFLOAT3& vector2)
+	{
+		DirectX::XMFLOAT3 result;
+		DirectX::XMStoreFloat3(&result, DirectX::XMVectorAdd(DirectX::XMLoadFloat3(&vector1), DirectX::XMLoadFloat3(&vector2)));
+		return result;
+	}
+
+	inline DirectX::XMFLOAT3 Add(const DirectX::XMFLOAT3& v1, const DirectX::XMFLOAT3& v2, float scalar)
+	{
+		DirectX::XMFLOAT3 result;
+		DirectX::XMStoreFloat3(&result, DirectX::XMVectorAdd(DirectX::XMLoadFloat3(&v1),
+			DirectX::XMVectorMultiply(DirectX::XMLoadFloat3(&v2), DirectX::XMVectorReplicate(scalar))));
+		return result;
+	}
+
+	inline DirectX::XMFLOAT3 Subtract(const DirectX::XMFLOAT3& v1, const DirectX::XMFLOAT3& v2)
+	{
+		DirectX::XMFLOAT3 result;
+		DirectX::XMStoreFloat3(&result, DirectX::XMVectorSubtract(DirectX::XMLoadFloat3(&v1), DirectX::XMLoadFloat3(&v2)));
+		return result;
+	}
+
+	inline float Length(const DirectX::XMFLOAT3& v)
+	{
+		DirectX::XMFLOAT3 result;
+		DirectX::XMStoreFloat3(&result, DirectX::XMVector3Length(DirectX::XMLoadFloat3(&v)));
+		return(v.x);
+	}
+
+	inline DirectX::XMFLOAT4X4 LookAtLH(const DirectX::XMFLOAT3& eye, 
+		const DirectX::XMFLOAT3& lookAt,
+		const DirectX::XMFLOAT3& up)
+	{
+		DirectX::XMFLOAT4X4 result;
+		DirectX::XMStoreFloat4x4(&result, DirectX::XMMatrixLookAtLH(DirectX::XMLoadFloat3(&eye),
+			DirectX::XMLoadFloat3(&lookAt), DirectX::XMLoadFloat3(&up)));
 		return result;
 	}
 }

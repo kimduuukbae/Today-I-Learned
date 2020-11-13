@@ -6,7 +6,7 @@ class CameraComponent
 {
 public:
 	CameraComponent();
-	~CameraComponent();
+	virtual ~CameraComponent();
 
 	DirectX::XMVECTOR GetPosition() const;
 	DirectX::XMFLOAT3 GetPosition3f() const;
@@ -49,11 +49,16 @@ public:
 	void Strafe(float d);
 	void Pitch(float angle);
 	void RotateY(float angle);
-private:
+
+	void SetOffset(float x, float y, float z);
+
+protected:
 	DirectX::XMFLOAT3 position { 0.0f, 0.0f, 0.0f };
 	DirectX::XMFLOAT3 right { 1.0f, 0.0f, 0.0f };
 	DirectX::XMFLOAT3 up { 0.0f, 1.0f, 0.0f };
 	DirectX::XMFLOAT3 look { 0.0f, 0.0f, 1.0f };
+
+	DirectX::XMFLOAT3 offset{ 0.0f, 0.0f, 0.0f };
 
 	float nearZ{ 0.0f };
 	float farZ{ 0.0f };

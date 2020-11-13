@@ -10,7 +10,8 @@ public:
 
 	virtual void Init() override;
 	virtual void Draw(ID3D12GraphicsCommandList* cmdList) override;
-
+	virtual void Update(const GameTimer& gt) override;
+	
 	void LoadFrameHierarchyFromFile();
 	void LoadMaterials(FILE* pInFile);
 
@@ -24,9 +25,12 @@ public:
 	void RotateLeft();
 	void RotateRight();
 private:
-	std::unique_ptr<class CameraComponent> cameraComponent;
+	class LagCameraComponent* cameraComponent;
 	class InputComponent* inputComponent;
 
 	std::unique_ptr<Frame> frame;
+
+	Frame* mainRotor{ nullptr };
+	Frame* tailRotor{ nullptr };
 };
 

@@ -26,13 +26,11 @@ XMFLOAT3 CameraComponent::GetPosition3f()const
 
 void CameraComponent::SetPosition(float x, float y, float z)
 {
-	position = { x, y, z };
 	UpdateMatrix();
 }
 
 void CameraComponent::SetPosition(const XMFLOAT3& v)
 {
-	position = v;
 	UpdateMatrix();
 }
 
@@ -122,8 +120,6 @@ void CameraComponent::LookAt(DirectX::FXMVECTOR pos, DirectX::FXMVECTOR target, 
 	XMStoreFloat3(&look, L);
 	XMStoreFloat3(&right, R);
 	XMStoreFloat3(&up, U);
-
-	UpdateMatrix();
 }
 
 void CameraComponent::LookAt(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& target, const DirectX::XMFLOAT3& up)
@@ -160,6 +156,9 @@ void CameraComponent::UpdateMatrix()
 	XMVECTOR R = XMLoadFloat3(&right);
 	XMVECTOR U = XMLoadFloat3(&up);
 	XMVECTOR L = XMLoadFloat3(&look);
+
+	//XMFLOAT3 t{ Math::Add(position, offset) };
+
 	XMVECTOR P = XMLoadFloat3(&position);
 
 	// 카메라의 축 직교 벡터들을 단위벡터로 만듬
@@ -240,7 +239,7 @@ void CameraComponent::Pitch(float angle)
 {
 	// Rotate up and look vector about the right vector.
 
-	XMMATRIX R = XMMatrixRotationAxis(XMLoadFloat3(&right), angle);
+	XMMATRIX R = XMMatrixRotationAxis(XMLoadFloat3(&right), DirectX::XMConvertToRadians(angle));
 
 	XMStoreFloat3(&up, XMVector3TransformNormal(XMLoadFloat3(&up), R));
 	XMStoreFloat3(&look, XMVector3TransformNormal(XMLoadFloat3(&look), R));
@@ -252,11 +251,18 @@ void CameraComponent::RotateY(float angle)
 {
 	// Rotate the basis vectors about the world y-axis.
 
-	XMMATRIX R = XMMatrixRotationY(angle);
+	XMMATRIX R = XMMatrixRotationY(DirectX::XMConvertToRadians(angle));
 
 	XMStoreFloat3(&right, XMVector3TransformNormal(XMLoadFloat3(&right), R));
 	XMStoreFloat3(&up, XMVector3TransformNormal(XMLoadFloat3(&up), R));
 	XMStoreFloat3(&look, XMVector3TransformNormal(XMLoadFloat3(&look), R));
 
 	UpdateMatrix();
+}
+
+void CameraComponent::SetOffset(float x, float y, float z)
+{
+	offset.x = x;
+	offset.y = y;
+	offset.z = z;
 }

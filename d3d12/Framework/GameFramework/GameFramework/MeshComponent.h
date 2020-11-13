@@ -13,6 +13,8 @@ public:
 	void SetMesh(MeshBase* target);
 	void SetMaterial(Material* mat);
 
+	bool IsBindingMesh();
+
 	void BindingResource(ID3D12GraphicsCommandList* cmdList);
 	void Draw(ID3D12GraphicsCommandList* cmdList);
 private:

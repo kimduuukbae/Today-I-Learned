@@ -21,14 +21,17 @@ void MeshComponent::SetMaterial(Material* mat)
 	material = mat;
 }
 
+bool MeshComponent::IsBindingMesh()
+{
+	return mesh != nullptr;
+}
+
 void MeshComponent::BindingResource(ID3D12GraphicsCommandList* cmdList)
 {
-	if(mesh)
-		mesh->BindingResource(cmdList);
+	mesh->BindingResource(cmdList);
 }
 
 void MeshComponent::Draw(ID3D12GraphicsCommandList* cmdList)
 {
-	if(mesh)
 	mesh->Draw(cmdList);
 }
