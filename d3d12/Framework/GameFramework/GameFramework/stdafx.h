@@ -35,6 +35,7 @@
 #include <type_traits>
 #include <filesystem>
 #include <functional>
+#include <map>
 
 //custom
 #include "GameTimer.h"

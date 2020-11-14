@@ -16,7 +16,7 @@ void SkySphere::Init()
 
 	texture = AddComponent<TextureComponent>();
 	texture->SetTexture(GameplayStatics::GetTexture("Textures\\grasscube1024.dds"));
-	SetLayer(100);
+	SetLayer(3);
 }
 
 void SkySphere::Draw(ID3D12GraphicsCommandList* cmdList)

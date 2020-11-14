@@ -106,7 +106,7 @@ void FrameworkApp::Draw()
 
 	mCommandList->ResourceBarrier(1, &prTransition);
 
-	mCommandList->ClearRenderTargetView(CurrentBackBufferView(), Colors::Brown, 0, nullptr);
+	mCommandList->ClearRenderTargetView(CurrentBackBufferView(), Colors::BlanchedAlmond, 0, nullptr);
 	mCommandList->ClearDepthStencilView(DepthStencilView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 	
 	const auto&& curBackBufferView{ CurrentBackBufferView() };

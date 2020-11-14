@@ -18,7 +18,7 @@ void Water::Init()
 
 	GetTransform()->SetTextureTransformSize(10.0f, 10.0f);
 
-	SetLayer(3);
+	SetLayer(4);
 }
 
 void Water::Draw(ID3D12GraphicsCommandList* cmdList)

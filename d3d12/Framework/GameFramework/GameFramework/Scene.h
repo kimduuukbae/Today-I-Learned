@@ -18,8 +18,9 @@ public:
 		p->GetTransform()->SetTransform(pos, rot);
 
 		uint32_t layer{ p->GetLayer() };
+		T* ptr{ p.get() };
 		objects[layer].push_back(std::move(p));
-		return static_cast<T*>(objects[layer].back().get());
+		return ptr;
 	}
 
 protected:
@@ -31,6 +32,6 @@ private:
 	virtual void Draw(ID3D12GraphicsCommandList* cmdList);
 	void Update(const GameTimer& gt);
 
-	std::unordered_map<int, std::vector<std::unique_ptr<Object>>> objects;
+	std::map<int, std::vector<std::unique_ptr<Object>>> objects;
 };
 
