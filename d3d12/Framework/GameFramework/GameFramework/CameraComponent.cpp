@@ -6,7 +6,7 @@ using namespace DirectX;
 
 CameraComponent::CameraComponent()
 {
-	SetLens(0.25f * XM_PI, GameplayStatics::GetAspectRatio() , 1.0f, 2000.0f);
+	SetLens(0.25f * XM_PI, GameplayStatics::GetAspectRatio() , 1.0f, 5000.0f);
 }
 
 CameraComponent::~CameraComponent()

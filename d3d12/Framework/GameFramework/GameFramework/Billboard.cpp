@@ -28,7 +28,7 @@ void Billboard::Init()
 	std::function<float(int, int)> GetHeight
 	{
 		[&heightMap](int x, int z) {
-			return heightMap[static_cast<size_t>(x) + (static_cast<size_t>(z) * 257)] * 2.0f;
+			return heightMap[static_cast<size_t>(x) + (static_cast<size_t>(z) * 257)] * 4.0f;
 		}
 	};
 
@@ -65,7 +65,7 @@ void Billboard::Init()
 
 	std::vector<Vertex> objects;
 	objects.reserve(nBillboardObjects);
-	DirectX::XMFLOAT3 terrainScale{ 8.0f, 2.0f, 8.0f };
+	DirectX::XMFLOAT3 terrainScale{ 16.0f, 4.0f, 16.0f };
 
 
 	for (int nObjects = 0, z = 2; z <= 254; z++)

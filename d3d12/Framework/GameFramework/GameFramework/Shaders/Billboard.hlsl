@@ -76,7 +76,7 @@ void GS(point VertexOut gin[1], // 넘어오는 primitive는 point임
 
 float4 PS(GeoOut pin) : SV_Target
 {
-    float4 image = BillboardTexture[0].Sample(gSamplerLinearWrap, pin.TexC);
+    float4 image = BillboardTexture[pin.TextureIndex % 2].Sample(gSamplerLinearWrap, pin.TexC);
     clip(image.a - 0.3f);
     return image;
 }

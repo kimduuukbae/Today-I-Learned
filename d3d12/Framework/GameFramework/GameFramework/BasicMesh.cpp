@@ -197,7 +197,7 @@ Landscape::Landscape(int width, int height, ID3D12Device* device, ID3D12Graphics
 	std::function<float(int, int)> GetHeight
 	{
 		[&heightMap, &width](int x, int z) {
-			return heightMap[static_cast<size_t>(x) + static_cast<size_t>((z * width))] * 2.0f;
+			return heightMap[static_cast<size_t>(x) + static_cast<size_t>((z * width))] * 4.0f;
 		}
 	};
 
@@ -209,12 +209,12 @@ Landscape::Landscape(int width, int height, ID3D12Device* device, ID3D12Graphics
 			size_t heightMapIndex{ static_cast<size_t>(x + (z * width)) };
 			size_t xHeightMapAdd{ static_cast<size_t>((x < (width - 1)) ? 1 : -1) };
 			size_t zHeightMapAdd{ static_cast<size_t>((z < (height - 1)) ? width : -width) };
-			float y1{ static_cast<float>(heightMap[heightMapIndex] * 2.0f) };
-			float y2{ static_cast<float>(heightMap[heightMapIndex + xHeightMapAdd] * 2.0f) };
-			float y3{ static_cast<float>(heightMap[heightMapIndex + zHeightMapAdd] * 2.0f) };
+			float y1{ static_cast<float>(heightMap[heightMapIndex] * 4.0f) };
+			float y2{ static_cast<float>(heightMap[heightMapIndex + xHeightMapAdd] * 4.0f) };
+			float y3{ static_cast<float>(heightMap[heightMapIndex + zHeightMapAdd] * 4.0f) };
 
-			DirectX::XMFLOAT3 edge1 = {0.0f, y3 - y1, 8.0f};
-			DirectX::XMFLOAT3 edge2 = {8.0f, y2 - y1, 0.0f};
+			DirectX::XMFLOAT3 edge1 = {0.0f, y3 - y1, 16.0f};
+			DirectX::XMFLOAT3 edge2 = {16.0f, y2 - y1, 0.0f};
 			DirectX::XMFLOAT3 norm = Math::CrossProduct(edge1, edge2, true);
 
 			return norm;
@@ -234,7 +234,7 @@ Landscape::Landscape(int width, int height, ID3D12Device* device, ID3D12Graphics
 			DirectX::XMFLOAT3 norm{ GetNormal(x, z) };
 			Vertex v
 			{ 
-				static_cast<float>(x) * 8.0f, cHeight, static_cast<float>(z) * 8.0f,
+				static_cast<float>(x) * 16.0f, cHeight, static_cast<float>(z) * 16.0f,
 				norm.x, norm.y, norm.z,
 				static_cast<float>(x) / static_cast<float>(width - 1),
 				static_cast<float>(height - 1 - z) / static_cast<float>(height - 1) 

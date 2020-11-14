@@ -41,7 +41,7 @@ bool FrameworkApp::Initialize() {
 void FrameworkApp::OnResize() 
 {
 	D3DApp::OnResize();
-	GameplayStatics::SetMainCameraFov(0.25f * XM_PI, AspectRatio(), 1.0f, 1000.0f);
+	GameplayStatics::SetMainCameraFov(0.25f * XM_PI, AspectRatio(), 1.0f, 5000.0f);
 }
 
 void FrameworkApp::Update(const GameTimer& gt) 

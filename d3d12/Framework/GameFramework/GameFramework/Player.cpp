@@ -28,7 +28,7 @@ void Player::Init()
 	mainRotor = frame->FindFrame("Top_Rotor");
 	tailRotor = frame->FindFrame("Tail_Rotor");
 
-	cameraComponent->SetOffset(0.0f, 15.0f, -35.0f);
+	cameraComponent->SetOffset(0.0f, 15.0f, -50.0f);
 	cameraComponent->Pitch(15.0f);
 	cameraComponent->SetPosition(frame->GetTransform()->GetPosition());
 	
@@ -99,7 +99,7 @@ void Player::DownKey()
 
 void Player::MouseLeft(float f)
 {
-	GetTransform()->RotateY(f * 720.0f * GameplayStatics::GetDeltaTime());
+	GetTransform()->RotateY(f * 360.0f * GameplayStatics::GetDeltaTime());
 }
 
 void Player::MouseRight(float f)
