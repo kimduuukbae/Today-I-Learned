@@ -1,6 +1,7 @@
 #include "Common.hlsli"
 
 Texture2D gDiffuse : register(t0);
+Texture2D gWaves : register(t1);
 
 struct VertexIn
 {
@@ -20,14 +21,17 @@ VertexOut VS(VertexIn vin)
 {
 	VertexOut vout = (VertexOut)0.0f;
 	
-    float4 posW = mul(float4(vin.PosL, 1.0f), gWorld);
+    vout.TexCoord = vin.TexC * gTexTransform;
+    vout.TexCoord += (gTotalTime / 10.0f);
 
+    float color = gWaves.SampleLevel(gSamplerLinearWrap, vout.TexCoord, 0).a;
+    vin.PosL.y += color * 100.0f;
+    
+
+    float4 posW = mul(float4(vin.PosL, 1.0f), gWorld);
     vout.PosW = posW.xyz;
 
     vout.PosH = mul(posW, gViewProj);
-
-    vout.TexCoord = vin.TexC * gTexTransform;
-    vout.TexCoord.y += (gTotalTime / 5.0f);
 
     return vout;
 }

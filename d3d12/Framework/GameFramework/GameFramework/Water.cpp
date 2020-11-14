@@ -15,8 +15,9 @@ void Water::Init()
 
 	texture = AddComponent<TextureComponent>();
 	texture->SetTexture(GameplayStatics::GetTexture("Textures\\water1.dds"));
+	texture->AddTexture(GameplayStatics::GetTexture("Textures\\waves1.dds"));
 
-	GetTransform()->SetTextureTransformSize(10.0f, 10.0f);
+	GetTransform()->SetTextureTransformSize(15.0f, 15.0f);
 
 	SetLayer(4);
 }

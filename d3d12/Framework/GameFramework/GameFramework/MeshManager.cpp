@@ -24,7 +24,7 @@ void MeshManager::Init()
 		device, cmdList);
 	meshs["Landscape"] = std::make_unique<Landscape>(257, 257,
 		device, cmdList);
-	meshs["GridXZ"] = std::make_unique<GridXZ>(10, 10, 4112.0f, 4112.0f,
+	meshs["GridXZ"] = std::make_unique<GridXZ>(100, 100, 4112.0f, 4112.0f,
 		device, cmdList);
 }
 
