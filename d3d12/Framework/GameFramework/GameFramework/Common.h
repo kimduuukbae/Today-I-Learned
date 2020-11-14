@@ -110,7 +110,7 @@ namespace Math
 	{
 		DirectX::XMFLOAT3 result;
 		DirectX::XMStoreFloat3(&result, DirectX::XMVector3Length(DirectX::XMLoadFloat3(&v)));
-		return(v.x);
+		return result.x;
 	}
 
 	inline DirectX::XMFLOAT4X4 LookAtLH(const DirectX::XMFLOAT3& eye, 

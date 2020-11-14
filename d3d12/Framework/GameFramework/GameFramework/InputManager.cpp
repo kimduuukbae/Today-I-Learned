@@ -24,7 +24,12 @@ void InputManager::PushEvent(unsigned char key, unsigned char state)
 		events.erase(key);
 }
 
+void InputManager::PushAxisEvent(unsigned char key, float axis)
+{
+	axisEvents[key] = axis;
+}
+
 void InputManager::ReleaseEvent()
 {
-	//events.clear();
+	axisEvents.clear();
 }

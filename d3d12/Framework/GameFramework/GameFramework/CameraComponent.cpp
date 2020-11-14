@@ -31,6 +31,7 @@ void CameraComponent::SetPosition(float x, float y, float z)
 
 void CameraComponent::SetPosition(const XMFLOAT3& v)
 {
+	position = v;
 	UpdateMatrix();
 }
 
@@ -217,21 +218,23 @@ void CameraComponent::SetLens(float fovY, float aspect, float nZ, float fZ)
 void CameraComponent::Walk(float d)
 {
 	// mPosition += d*mLook
-	XMVECTOR s = XMVectorReplicate(d);
+	/*XMVECTOR s = XMVectorReplicate(d);
 	XMVECTOR l = XMLoadFloat3(&look);
 	XMVECTOR p = XMLoadFloat3(&position);
-	XMStoreFloat3(&position, XMVectorMultiplyAdd(s, l, p));
+	XMStoreFloat3(&position, XMVectorMultiplyAdd(s, l, p));*/
+	position.z += d;
 
 	UpdateMatrix();
 }
 
 void CameraComponent::Strafe(float d)
 {
-	XMVECTOR s = XMVectorReplicate(d);
+	/*XMVECTOR s = XMVectorReplicate(d);
 	XMVECTOR r = XMLoadFloat3(&right);
 	XMVECTOR p = XMLoadFloat3(&position);
-	XMStoreFloat3(&position, XMVectorMultiplyAdd(s, r, p));
+	XMStoreFloat3(&position, XMVectorMultiplyAdd(s, r, p));*/
 
+	position.x += d;
 	UpdateMatrix();
 }
 
@@ -265,4 +268,11 @@ void CameraComponent::SetOffset(float x, float y, float z)
 	offset.x = x;
 	offset.y = y;
 	offset.z = z;
+}
+
+void CameraComponent::Move(const DirectX::XMFLOAT3& shift)
+{
+	position = Math::Add(position, shift);
+
+	UpdateMatrix();
 }

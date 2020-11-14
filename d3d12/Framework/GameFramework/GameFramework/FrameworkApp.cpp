@@ -65,7 +65,22 @@ void FrameworkApp::OnMouseUp(WPARAM btnState, int x, int y)
 
 void FrameworkApp::OnMouseMove(WPARAM btnState, int x, int y)
 {
-	
+	if (GetCapture() == mhMainWnd) {
+
+		if ((btnState & MK_LBUTTON) != 0) {
+			float axisX{ static_cast<float>(x - lastMousePos.x) };
+			axisX = std::clamp(axisX, -1.0f, 1.0f);
+			inputManager->PushAxisEvent(static_cast<unsigned char>(btnState), axisX);
+		}
+		else if ((btnState & MK_RBUTTON) != 0) {
+			float axisY{ XMConvertToRadians(0.25f * static_cast<float>(y - lastMousePos.y)) };
+			axisY = std::clamp(axisY, -1.0f, 1.0f);
+			inputManager->PushAxisEvent(static_cast<unsigned char>(btnState), axisY);
+		}
+
+		lastMousePos.x = x;
+		lastMousePos.y = y;
+	}
 }
 
 void FrameworkApp::OnKeyboardDown(unsigned char key, unsigned char state)

@@ -20,10 +20,8 @@ void Player::Init()
 	inputComponent->BindInput('S', true, [this]() { DownKey(); });
 	inputComponent->BindInput('A', true, [this]() { LeftKey(); });
 	inputComponent->BindInput('D', true, [this]() { RightKey(); });
-	inputComponent->BindInput('I', true, [this]() { PitchUp(); });
-	inputComponent->BindInput('K', true, [this]() { PitchDown(); });
-	inputComponent->BindInput('J', true, [this]() { RotateLeft(); });
-	inputComponent->BindInput('L', true, [this]() { RotateRight(); });
+	
+	inputComponent->BindAxis(MK_LBUTTON, [this](float f) { MouseLeft(f); });
 
 	LoadFrameHierarchyFromFile();
 
@@ -66,6 +64,8 @@ void Player::LoadFrameHierarchyFromFile()
 	::rewind(pInFile);
 
 	frame = Frame::LoadFrameHierarchyFromFile(pInFile);
+
+	::fclose(pInFile);
 }
 
 void Player::LoadMaterials(FILE* pInFile)
@@ -76,41 +76,32 @@ void Player::LoadMaterials(FILE* pInFile)
 void Player::LeftKey()
 {
 	GetTransform()->Right(-360.0f * GameplayStatics::GetDeltaTime());
-	cameraComponent->SetPosition(GetTransform()->GetPosition());
+	cameraComponent->Move(Math::MultiplyScalar(GetTransform()->GetRight(), -360.0f * GameplayStatics::GetDeltaTime()));
 }
 
 void Player::RightKey()
 {
 	GetTransform()->Right(360.0f * GameplayStatics::GetDeltaTime());
-	cameraComponent->SetPosition(GetTransform()->GetPosition());
+	cameraComponent->Move(Math::MultiplyScalar(GetTransform()->GetRight(), 360.0f * GameplayStatics::GetDeltaTime()));
 }
 
 void Player::UpKey()
 {
-	GetTransform()->Forward(100.0f * GameplayStatics::GetDeltaTime());
+	GetTransform()->Forward(360.0f * GameplayStatics::GetDeltaTime());
+	cameraComponent->Move(Math::MultiplyScalar(GetTransform()->GetLook(), 360.0f * GameplayStatics::GetDeltaTime()));
 }
 
 void Player::DownKey()
 {
-
+	GetTransform()->Forward(-360.0f * GameplayStatics::GetDeltaTime());
+	cameraComponent->Move(Math::MultiplyScalar(GetTransform()->GetLook(), -360.0f * GameplayStatics::GetDeltaTime()));
 }
 
-void Player::PitchUp()
+void Player::MouseLeft(float f)
 {
-
+	GetTransform()->RotateY(f * 720.0f * GameplayStatics::GetDeltaTime());
 }
 
-void Player::PitchDown()
+void Player::MouseRight(float f)
 {
-	
-}
-
-void Player::RotateLeft()
-{
-	
-}
-
-void Player::RotateRight()
-{
-	GetTransform()->RotateY(360.0f * GameplayStatics::GetDeltaTime());
 }

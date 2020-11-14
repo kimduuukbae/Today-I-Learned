@@ -18,13 +18,21 @@ public:
 		return events;
 	}
 
+	[[nodiscard]] const std::unordered_map<KEY, float>& GetAxisEvents()
+	{
+		return axisEvents;
+	}
+
 private:
 	friend class FrameworkApp;
 
 	void PushEvent(unsigned char key, unsigned char state);
+	void PushAxisEvent(unsigned char key, float axis);
 	void ReleaseEvent();
 
 	std::unordered_map<KEY, STATE> events;
+	std::unordered_map<KEY, float> axisEvents;
+
 	std::array<unsigned char, 256> keys{};
 };
 

@@ -15,12 +15,18 @@ InputComponent::~InputComponent()
 
 void InputComponent::BindInput(unsigned char action, bool pressed, std::function<void()>&& callback)
 {
-	this->action[pressed].emplace(std::move(action), std::move(callback));
+	this->action[pressed].emplace(action, std::move(callback));
+}
+
+void InputComponent::BindAxis(unsigned char input, std::function<void(float)>&& callback)
+{
+	axis.emplace(input, std::move(callback));
 }
 
 void InputComponent::Update(const GameTimer& gt)
 {
 	ProcessAction();
+	ProcessAxis();
 }
 
 void InputComponent::ProcessAction()
@@ -28,9 +34,21 @@ void InputComponent::ProcessAction()
 	const auto& events{ InputManager::GetInstance()->GetEvents() };
 
 	for (auto& event : events) {
-		const auto [key, state] = event;
+		const auto& [key, state] = event;
 		auto [beg, end] = action[state].equal_range(key);
 		for (; beg != end; ++beg)
 			beg->second();
+	}
+}
+
+void InputComponent::ProcessAxis()
+{
+	const auto& events{ InputManager::GetInstance()->GetAxisEvents() };
+
+	for (auto& event : events) {
+		const auto& [key, value] = event;
+		auto [beg, end] = axis.equal_range(key);
+		for (; beg != end; ++beg)
+			beg->second(value);
 	}
 }

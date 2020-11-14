@@ -51,6 +51,7 @@ public:
 	void RotateY(float angle);
 
 	void SetOffset(float x, float y, float z);
+	void Move(const DirectX::XMFLOAT3& shift);
 
 protected:
 	DirectX::XMFLOAT3 position { 0.0f, 0.0f, 0.0f };

@@ -20,10 +20,8 @@ public:
 	void UpKey();
 	void DownKey();
 
-	void PitchUp();
-	void PitchDown();
-	void RotateLeft();
-	void RotateRight();
+	void MouseLeft(float f);
+	void MouseRight(float f);
 private:
 	class LagCameraComponent* cameraComponent;
 	class InputComponent* inputComponent;
