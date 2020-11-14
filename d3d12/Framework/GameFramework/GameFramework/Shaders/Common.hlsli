@@ -4,6 +4,7 @@
 cbuffer cbPerObject : register(b0)
 {
     float4x4 gWorld;
+    float2 gTexTransform;
 };
 
 cbuffer cbPass : register(b1)
@@ -12,6 +13,7 @@ cbuffer cbPass : register(b1)
     float4x4 gProj;
     float4x4 gViewProj;
     float3 gEyePosW;
+    float gTotalTime;
 };
 
 /*cbuffer cbMaterial : register(b1)

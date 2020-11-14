@@ -186,9 +186,9 @@ namespace Buffers
 			return uploadBuffer.Get();
 		}
 
-		void CopyData(std::size_t elementIndex, const T& data) 
+		void CopyData(const T& data) 
 		{
-			memcpy(&mappedData[elementIndex * byteSize], &data, sizeof(T));
+			memcpy(mappedData, &data, sizeof(T));
 		}
 
 		UploadBuffer(const UploadBuffer& rhs) = delete;

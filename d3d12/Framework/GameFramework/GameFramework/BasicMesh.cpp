@@ -296,3 +296,73 @@ Landscape::Landscape(int width, int height, ID3D12Device* device, ID3D12Graphics
 Landscape::~Landscape()
 {
 }
+
+GridXZ::GridXZ(uint32_t vertexX, uint32_t vertexY, float width, float depth, ID3D12Device* device, ID3D12GraphicsCommandList* commandList)
+{
+	const size_t vertexCount{ static_cast<size_t>(vertexX) * vertexY };
+	// 한칸이 삼각형 두 개, 만약 10칸을 만든다면, 9칸짜리 vertex가 필요함 ( 중복 )
+	// 즉 vertexX - 1 * vertexY - 1 개의 vertex가 필요한데,
+	// 삼각형 두 개이므로 vertexX - 1 * vertexY - 1 * 2 
+	const size_t faceCount{ static_cast<size_t>(vertexX - 1) * static_cast<size_t>(vertexY - 1) * 2 };
+
+	const float halfWidth{ 0.5f * width };
+	const float halfDepth{ 0.5f * depth };
+
+	const float dx{ width / (vertexY - 1) };	// x 기울기
+	const float dz{ depth / (vertexX - 1) };	// z 기울기
+
+	const float du{ 1.0f / (vertexY - 1) };
+	const float dv{ 1.0f / (vertexX - 1) };
+
+	std::vector<Vertex> vertices(vertexCount);
+	std::vector<uint32_t> indices(faceCount * 3);
+
+	for (size_t i = 0; i < vertexX; ++i) {
+		float z{ halfDepth - i * dz };
+		for (size_t j = 0; j < vertexY; ++j) {
+			float x{ -halfWidth + j * dx };
+
+			Vertex& v{ vertices[i * static_cast<size_t>(vertexY) + j] };
+
+			v.pos = { x, 0.0f, z };
+			v.normal = { 0.0f, 1.0f, 0.0f };
+			v.texCoord.x = j * du;
+			v.texCoord.y = i * dv;
+		}
+	}
+
+	size_t k{ 0 };
+	for (uint32_t i = 0; i < vertexX - 1; ++i) {
+		for (uint32_t j = 0; j < vertexY - 1; ++j) {
+			indices[k] = i * vertexY + j;
+			indices[k + 1] = i * vertexY + j + 1;
+			indices[k + 2] = (i + 1) * vertexY + j;
+
+			indices[k + 3] = (i + 1) * vertexY + j;
+			indices[k + 4] = i * vertexY + j + 1;
+			indices[k + 5] = (i + 1) * vertexY + j + 1;
+
+			k += 6;
+		}
+	}
+
+	const UINT vbSize{ static_cast<UINT>(vertices.size()) * sizeof(Vertex) };
+	const UINT ibSize{ static_cast<UINT>(indices.size()) * sizeof(uint32_t) };
+
+	vBuffer = Buffers::CreateDefaultBuffer(device, commandList,
+		vertices.data(), vbSize, vUploadBuffer);
+	iBuffer = Buffers::CreateDefaultBuffer(device, commandList,
+		indices.data(), ibSize, iUploadBuffer);
+
+	vByteSize = vbSize;
+	vByteStride = sizeof(Vertex);
+
+	iFormat = DXGI_FORMAT_R32_UINT;
+	iByteSize = ibSize;
+
+	iCount = static_cast<UINT>(indices.size());
+}
+
+GridXZ::~GridXZ()
+{
+}

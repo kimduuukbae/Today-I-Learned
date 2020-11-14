@@ -17,5 +17,7 @@ public:
 	static float GetAspectRatio();
 	static class Texture* GetTexture(const std::filesystem::path& p);
 	static float GetDeltaTime();
+	static float GetTotalTime();
+	static class MeshBase* GetMesh(const std::string& name);
 };
 

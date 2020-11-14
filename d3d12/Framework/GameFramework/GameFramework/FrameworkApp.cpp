@@ -26,7 +26,7 @@ bool FrameworkApp::Initialize() {
 	inputManager = InputManager::GetInstance();
 	FailedAssert(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
 	sceneManager->Init();
-
+	
 	FailedAssert(mCommandList->Close());
 	ID3D12CommandList* cmdsLists[]{ mCommandList.Get() };
 	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);

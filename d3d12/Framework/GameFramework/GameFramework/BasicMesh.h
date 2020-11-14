@@ -23,3 +23,13 @@ public:
 	Landscape(int width, int height, ID3D12Device* device, ID3D12GraphicsCommandList* commandList);
 	~Landscape();
 };
+
+
+// XZ 평면의 그리드
+class GridXZ : public Mesh
+{
+public:
+	GridXZ(uint32_t vertexX, uint32_t vertexY, float width, float depth,
+	ID3D12Device* device, ID3D12GraphicsCommandList* commandList);
+	~GridXZ();
+};

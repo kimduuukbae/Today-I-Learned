@@ -5,8 +5,11 @@ using namespace DirectX;
 
 TransformComponent::TransformComponent()
 {
-	cBuffer = std::make_unique<Buffers::UploadBuffer<DirectX::XMFLOAT4X4>>(D3DApp::GetApp()->GetDevice(), 1, true);
-	cBuffer->CopyData(0, worldMatrix);
+	cBuffer = std::make_unique<Buffers::UploadBuffer<MatrixInformation>>(D3DApp::GetApp()->GetDevice(), 1, true);
+	matrix.textureTransform = { 1.0f, 1.0f };
+	matrix.worldMatrix = Math::Identity4x4();
+	
+	cBuffer->CopyData(matrix);
 }
 
 TransformComponent::~TransformComponent()
@@ -15,11 +18,13 @@ TransformComponent::~TransformComponent()
 
 void TransformComponent::SetPosition(const DirectX::XMFLOAT3& pos)
 {
-	worldMatrix._41 = pos.x;
-	worldMatrix._42 = pos.y;
-	worldMatrix._43 = pos.z;
-
 	position = pos;
+
+	matrix.worldMatrix._41 = pos.x;
+	matrix.worldMatrix._42 = pos.y;
+	matrix.worldMatrix._43 = pos.z;
+
+	
 	UpdateMatrix();
 }
 
@@ -33,11 +38,19 @@ void TransformComponent::SetTransform(const DirectX::XMFLOAT3& pos, const Direct
 {
 	position = pos;
 
-	worldMatrix._41 = pos.x;
-	worldMatrix._42 = pos.y;
-	worldMatrix._43 = pos.z;
+	matrix.worldMatrix._41 = pos.x;
+	matrix.worldMatrix._42 = pos.y;
+	matrix.worldMatrix._43 = pos.z;
 
 	rotation = rot;
+	UpdateMatrix();
+}
+
+void TransformComponent::SetTextureTransformSize(float xSize, float ySize)
+{
+	matrix.textureTransform.x = xSize;
+	matrix.textureTransform.y = ySize;
+
 	UpdateMatrix();
 }
 
@@ -48,7 +61,7 @@ DirectX::XMFLOAT3 TransformComponent::GetPosition()
 
 DirectX::XMFLOAT4X4& TransformComponent::GetTransformDirect()
 {
-	return worldMatrix;
+	return matrix.worldMatrix;
 }
 
 D3D12_GPU_VIRTUAL_ADDRESS TransformComponent::GetResourceAddress()
@@ -86,27 +99,27 @@ void TransformComponent::RotateZ(float angle)
 void TransformComponent::Forward(float distance)
 {
 	position = Math::Add(position, Math::MultiplyScalar(look, distance));
-	worldMatrix._41 = position.x;
-	worldMatrix._42 = position.y;
-	worldMatrix._43 = position.z;
+	matrix.worldMatrix._41 = position.x;
+	matrix.worldMatrix._42 = position.y;
+	matrix.worldMatrix._43 = position.z;
 	UpdateMatrix();
 }
 
 void TransformComponent::Right(float distance)
 {
 	position = Math::Add(position, Math::MultiplyScalar(right, distance));
-	worldMatrix._41 = position.x;
-	worldMatrix._42 = position.y;
-	worldMatrix._43 = position.z;
+	matrix.worldMatrix._41 = position.x;
+	matrix.worldMatrix._42 = position.y;
+	matrix.worldMatrix._43 = position.z;
 	UpdateMatrix();
 }
 
 void TransformComponent::UpdateMatrix()
 {
-	DirectX::XMFLOAT4X4 m;
+	MatrixInformation mat{ .textureTransform = matrix.textureTransform };
 
-	XMStoreFloat4x4(&m, XMMatrixTranspose(XMLoadFloat4x4(&worldMatrix)));
-	cBuffer->CopyData(0, m);
+	DirectX::XMStoreFloat4x4(&mat.worldMatrix, XMMatrixTranspose(XMLoadFloat4x4(&matrix.worldMatrix)));
+	cBuffer->CopyData(mat);
 }
 
 DirectX::XMFLOAT3 TransformComponent::GetRight()
@@ -129,6 +142,8 @@ void TransformComponent::BasisNormalize()
 	look = Math::Vector3Normalize(look);
 	up = Math::CrossProduct(look, right, true);
 	right = Math::CrossProduct(up, look, true);
+
+	XMFLOAT4X4& worldMatrix{ matrix.worldMatrix };
 
 	worldMatrix._11 = right.x; worldMatrix._12 = right.y; worldMatrix._13 = right.z;
 	worldMatrix._21 = up.x; worldMatrix._22 = up.y; worldMatrix._23 = up.z;

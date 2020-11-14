@@ -1,7 +1,6 @@
 #include "stdafx.h"
 #include "Cube.h"
 #include "MeshComponent.h"
-#include "MeshManager.h"
 #include "TextureComponent.h"
 #include "GameplayStatics.h"
 
@@ -13,7 +12,7 @@ Cube::Cube()
 void Cube::Init()
 {
 	mesh = AddComponent<MeshComponent>();
-	mesh->SetMesh(MeshManager::GetInstance()->GetMesh("Cube"));
+	mesh->SetMesh(GameplayStatics::GetMesh("Cube"));
 
 	texture = AddComponent<TextureComponent>();
 	texture->SetTexture(GameplayStatics::GetTexture("Textures\\bricks.dds"));

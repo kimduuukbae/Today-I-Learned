@@ -15,7 +15,6 @@ void Frame::Init()
 {
 	mesh = AddComponent<MeshComponent>();
 	texture = AddComponent<TextureComponent>();
-	SetLayer(0);
 }
 
 void Frame::Draw(ID3D12GraphicsCommandList* cmdList)

@@ -3,7 +3,7 @@
 #include "d3dx12.h"
 #include "CameraComponent.h"
 #include "Texture.h"
-#include <filesystem>
+#include "GameplayStatics.h"
 
 using namespace Microsoft::WRL;
 using namespace DirectX;
@@ -108,9 +108,9 @@ void ResourceManager::BindingResource(ID3D12GraphicsCommandList* cmdList)
 	XMStoreFloat4x4(&pass.viewMatrix, XMMatrixTranspose(view));
 	XMStoreFloat4x4(&pass.projMatrix, XMMatrixTranspose(proj));
 	pass.eyePosition = mainCam->GetPosition3f();
-
 	XMStoreFloat4x4(&pass.viewProj, XMMatrixTranspose(XMMatrixMultiply(view, proj)));
-	passCB->CopyData(0, pass);
+	pass.totalTime = GameplayStatics::GetTotalTime();
+	passCB->CopyData(pass);
 	cmdList->SetGraphicsRootConstantBufferView(1, passCB->GetResource()->GetGPUVirtualAddress());
 }
 
@@ -218,6 +218,9 @@ void ResourceManager::CreatePSO()
 
 	ComPtr<ID3DBlob> defaultVS{ CompileShader(L"Shaders\\Default.hlsl", nullptr, "VS", "vs_5_1") };
 	ComPtr<ID3DBlob> defaultPS{ CompileShader(L"Shaders\\Default.hlsl", nullptr, "PS", "ps_5_1") };
+
+	ComPtr<ID3DBlob> blendVS{ CompileShader(L"Shaders\\Blend.hlsl", nullptr, "VS", "vs_5_1") };
+	ComPtr<ID3DBlob> blendPS{ CompileShader(L"Shaders\\Blend.hlsl", nullptr, "PS", "ps_5_1") };
 	
 	ComPtr<ID3DBlob> landscapeVS{ CompileShader(L"Shaders\\Landscape.hlsl", nullptr, "VS", "vs_5_1") };
 	
@@ -261,6 +264,37 @@ void ResourceManager::CreatePSO()
 	opaqueDesc.DSVFormat = app->mDepthStencilFormat;
 
 	app->GetDevice()->CreateGraphicsPipelineState(&opaqueDesc, IID_PPV_ARGS(&psos["Opaque"]));
+
+	opaqueDesc.VS =
+	{
+		reinterpret_cast<BYTE*>(blendVS->GetBufferPointer()),
+		blendVS->GetBufferSize()
+	};
+	opaqueDesc.PS =
+	{
+		reinterpret_cast<BYTE*>(blendPS->GetBufferPointer()),
+		blendPS->GetBufferSize()
+	};
+
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC blendPSODesc{ opaqueDesc };
+	
+	D3D12_RENDER_TARGET_BLEND_DESC blendRTDesc{};
+	blendRTDesc.BlendEnable = true;	// Blend 활성화
+	blendRTDesc.LogicOpEnable = false; // 논리 연산자 활성화 ( blend와 같이 쓸 수 없음 )
+	blendRTDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA; // 그려'질' 색상 계수
+	blendRTDesc.DestBlend = D3D12_BLEND_INV_SRC_ALPHA; // 그려'져있는' 색상 계수 (INV에 의해 1 - a로 변함 )
+	blendRTDesc.BlendOp = D3D12_BLEND_OP_ADD; // RGB 혼합 연산자
+	blendRTDesc.SrcBlendAlpha = D3D12_BLEND_ONE; // 그려'질' 색상 알파 계수
+	blendRTDesc.DestBlendAlpha = D3D12_BLEND_ZERO; // 그려'져있는' 색상 알파 계수
+	blendRTDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD; // 알파 혼합 연산자
+	blendRTDesc.LogicOp = D3D12_LOGIC_OP_NOOP; // 논리 연산자 혼합
+	blendRTDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;	// 후면 버퍼 색상 채널 결정
+	
+	blendPSODesc.BlendState.RenderTarget[0] = blendRTDesc;
+
+	blendPSODesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;	// Blend는 CULL모드를 끔
+
+	app->GetDevice()->CreateGraphicsPipelineState(&blendPSODesc, IID_PPV_ARGS(&psos["Blend"]));
 
 	opaqueDesc.VS =
 	{

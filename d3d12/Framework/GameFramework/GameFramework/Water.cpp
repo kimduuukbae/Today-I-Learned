@@ -1,27 +1,29 @@
 #include "stdafx.h"
-#include "SkySphere.h"
+#include "Water.h"
 #include "MeshComponent.h"
 #include "TextureComponent.h"
 #include "GameplayStatics.h"
 
-SkySphere::SkySphere()
+Water::Water()
 {
-
 }
 
-void SkySphere::Init()
+void Water::Init()
 {
 	mesh = AddComponent<MeshComponent>();
-	mesh->SetMesh(GameplayStatics::GetMesh("Sphere"));
+	mesh->SetMesh(GameplayStatics::GetMesh("GridXZ"));
 
 	texture = AddComponent<TextureComponent>();
-	texture->SetTexture(GameplayStatics::GetTexture("Textures\\grasscube1024.dds"));
-	SetLayer(100);
+	texture->SetTexture(GameplayStatics::GetTexture("Textures\\water1.dds"));
+
+	GetTransform()->SetTextureTransformSize(10.0f, 10.0f);
+
+	SetLayer(3);
 }
 
-void SkySphere::Draw(ID3D12GraphicsCommandList* cmdList)
+void Water::Draw(ID3D12GraphicsCommandList* cmdList)
 {
-	cmdList->SetPipelineState(GameplayStatics::GetPSO("Skybox"));
+	cmdList->SetPipelineState(GameplayStatics::GetPSO("Blend"));
 
 	mesh->BindingResource(cmdList);
 	texture->BindingResource(cmdList);

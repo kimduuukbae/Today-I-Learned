@@ -43,8 +43,12 @@ void Billboard::Init()
 
 	for (int z = 2; z <= 254; z++)
 	{
+		if (z % 2 == 0)
+			continue;
+
 		for (int x = 2; x <= 254; x++)
 		{
+			
 			BYTE nPixel = GetPixel(x, z);
 			switch (nPixel)
 			{
@@ -70,6 +74,9 @@ void Billboard::Init()
 
 	for (int nObjects = 0, z = 2; z <= 254; z++)
 	{
+		if (z % 2 == 0 )
+			continue;
+
 		for (int x = 2; x <= 254; x++)
 		{
 			BYTE nPixel = GetPixel(x, z);

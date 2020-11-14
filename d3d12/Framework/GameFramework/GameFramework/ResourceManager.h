@@ -33,10 +33,11 @@ private:
 
 	struct PassInfomation
 	{
-		DirectX::XMFLOAT4X4 viewMatrix{ Math::Identity4x4() };
-		DirectX::XMFLOAT4X4 projMatrix{ Math::Identity4x4() };
-		DirectX::XMFLOAT4X4 viewProj{ Math::Identity4x4() };
-		DirectX::XMFLOAT3 eyePosition{ 0.0f, 0.0f, 0.0f };
+		DirectX::XMFLOAT4X4 viewMatrix;
+		DirectX::XMFLOAT4X4 projMatrix;
+		DirectX::XMFLOAT4X4 viewProj;
+		DirectX::XMFLOAT3 eyePosition;
+		float totalTime;
 	};
 	std::unique_ptr<Buffers::UploadBuffer<PassInfomation>> passCB{ nullptr };
 

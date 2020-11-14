@@ -6,6 +6,7 @@
 #include "SceneManager.h"
 
 float deltaTime;
+float totalTime;
 
 void GameplayStatics::SetMainCamera(CameraComponent* camComp)
 {
@@ -36,4 +37,14 @@ Texture* GameplayStatics::GetTexture(const std::filesystem::path& p)
 float GameplayStatics::GetDeltaTime()
 {
 	return deltaTime;
+}
+
+float GameplayStatics::GetTotalTime()
+{
+	return totalTime;
+}
+
+MeshBase* GameplayStatics::GetMesh(const std::string& name)
+{
+	return MeshManager::GetInstance()->GetMesh(name);
 }

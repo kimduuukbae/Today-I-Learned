@@ -79,8 +79,9 @@ int D3DApp::Run()
 		{
 			mTimer.Tick();
 			extern float deltaTime;
+			extern float totalTime;
 			deltaTime = mTimer.DeltaTime();
-
+			totalTime = mTimer.TotalTime();
 			if (!mAppPaused)
 			{
 				CalculateFrameStats();
