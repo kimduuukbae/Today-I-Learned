@@ -3,6 +3,8 @@
 #include "LagCameraComponent.h"
 #include "GameplayStatics.h"
 #include "InputComponent.h"
+#include "Scene.h"
+#include "Bullet.h"
 
 Player::Player()
 {
@@ -20,7 +22,8 @@ void Player::Init()
 	inputComponent->BindInput('S', true, [this]() { DownKey(); });
 	inputComponent->BindInput('A', true, [this]() { LeftKey(); });
 	inputComponent->BindInput('D', true, [this]() { RightKey(); });
-	
+	inputComponent->BindInput(VK_CONTROL, false, [this]() { CtrlKey(); });
+
 	inputComponent->BindAxis(MK_LBUTTON, [this](float f) { MouseLeft(f); });
 
 	LoadFrameHierarchyFromFile();
@@ -38,6 +41,8 @@ void Player::Init()
 void Player::Draw(ID3D12GraphicsCommandList* cmdList)
 {
 	frame->Draw(cmdList);
+	for (auto& elem : bullets)
+		elem->Draw(cmdList);
 }
 
 void Player::Update(const GameTimer& gt)
@@ -53,6 +58,9 @@ void Player::Update(const GameTimer& gt)
 		tailRotor->GetLocalTransform());
 
 	frame->UpdateMeshMatrix(&GetTransform()->GetTransformDirect());
+
+	for (auto& elem : bullets)
+		elem->Update(gt);
 }
 
 void Player::LoadFrameHierarchyFromFile()
@@ -97,11 +105,18 @@ void Player::DownKey()
 	cameraComponent->Move(Math::MultiplyScalar(GetTransform()->GetLook(), -360.0f * GameplayStatics::GetDeltaTime()));
 }
 
+void Player::CtrlKey()
+{
+	TransformComponent* t{ GetTransform() };
+
+	bullets.push_back(std::make_unique<Bullet>());
+	Bullet* ptr{ bullets.back().get() };
+	ptr->Init();
+	ptr->SetPosition(t->GetPosition());
+	ptr->GetTransform()->SetBasisVector(t->GetRight(), t->GetUp(), t->GetLook());
+}
+
 void Player::MouseLeft(float f)
 {
 	GetTransform()->RotateY(f * 360.0f * GameplayStatics::GetDeltaTime());
-}
-
-void Player::MouseRight(float f)
-{
 }

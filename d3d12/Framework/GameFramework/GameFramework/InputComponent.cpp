@@ -33,11 +33,15 @@ void InputComponent::ProcessAction()
 {
 	const auto& events{ InputManager::GetInstance()->GetEvents() };
 
-	for (auto& event : events) {
-		const auto& [key, state] = event;
-		auto [beg, end] = action[state].equal_range(key);
-		for (; beg != end; ++beg)
-			beg->second();
+	for (size_t i = 0; i < 2; ++i) {
+		const auto& keys{ events[i] };
+
+		for (auto& key : keys) {
+			auto [beg, end] = action[i].equal_range(key);
+
+			for (; beg != end; ++beg)
+				beg->second();
+		}
 	}
 }
 

@@ -19,9 +19,9 @@ public:
 	void RightKey();
 	void UpKey();
 	void DownKey();
+	void CtrlKey();
 
 	void MouseLeft(float f);
-	void MouseRight(float f);
 private:
 	class LagCameraComponent* cameraComponent;
 	class InputComponent* inputComponent;
@@ -30,5 +30,7 @@ private:
 
 	Frame* mainRotor{ nullptr };
 	Frame* tailRotor{ nullptr };
+
+	std::vector<std::unique_ptr<class Bullet>> bullets;
 };
 

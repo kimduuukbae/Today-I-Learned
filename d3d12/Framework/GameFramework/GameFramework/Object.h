@@ -45,6 +45,7 @@ public:
 
 	void SetLayer(uint32_t layer);
 	uint32_t GetLayer();
+	Scene* GetScene();
 
 protected:
 	using Super = Object;
@@ -56,5 +57,7 @@ private:
 	std::vector<std::unique_ptr<IComponent>> components;
 
 	uint32_t layer{ 0 };
+
+	Scene* curScene;
 };
 

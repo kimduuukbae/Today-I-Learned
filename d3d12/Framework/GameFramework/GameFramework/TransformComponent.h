@@ -27,6 +27,10 @@ public:
 
 	void UpdateMatrix();
 
+	void SetRight(const DirectX::XMFLOAT3& r);
+	void SetUp(const DirectX::XMFLOAT3& u);
+	void SetLook(const DirectX::XMFLOAT3& l);
+	void SetBasisVector(const DirectX::XMFLOAT3& r, const DirectX::XMFLOAT3& u, const DirectX::XMFLOAT3& l);
 
 	DirectX::XMFLOAT3 GetRight();
 	DirectX::XMFLOAT3 GetUp();

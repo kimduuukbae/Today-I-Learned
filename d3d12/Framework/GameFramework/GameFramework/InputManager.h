@@ -13,7 +13,7 @@ public:
 
 	void Init();
 
-	[[nodiscard]] const std::unordered_map<KEY, STATE>& GetEvents()
+	[[nodiscard]] const std::array<std::unordered_set<KEY>, 2>& GetEvents()
 	{
 		return events;
 	}
@@ -30,9 +30,7 @@ private:
 	void PushAxisEvent(unsigned char key, float axis);
 	void ReleaseEvent();
 
-	std::unordered_map<KEY, STATE> events;
+	std::array<std::unordered_set<KEY>, 2> events;
 	std::unordered_map<KEY, float> axisEvents;
-
-	std::array<unsigned char, 256> keys{};
 };
 

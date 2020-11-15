@@ -11,11 +11,25 @@ public:
 	virtual ~Scene() {}
 
 	template <typename T>
-	T* SpawnObject(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& rot)
+	T* SpawnObject(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& rot = DirectX::XMFLOAT3{})
 	{
 		auto p{ std::make_unique<T>() };
 		p->Init();
 		p->GetTransform()->SetTransform(pos, rot);
+		p->curScene = this;
+
+		uint32_t layer{ p->GetLayer() };
+		T* ptr{ p.get() };
+		objects[layer].push_back(std::move(p));
+		return ptr;
+	}
+
+	template <typename T>
+	T* SpawnObject()
+	{
+		auto p{ std::make_unique<T>() };
+		p->Init();
+		p->curScene = this;
 
 		uint32_t layer{ p->GetLayer() };
 		T* ptr{ p.get() };

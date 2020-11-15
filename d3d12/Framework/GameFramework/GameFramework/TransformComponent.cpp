@@ -137,6 +137,28 @@ DirectX::XMFLOAT3 TransformComponent::GetLook()
 	return look;
 }
 
+void TransformComponent::SetRight(const DirectX::XMFLOAT3& r)
+{
+	right = r;
+}
+
+void TransformComponent::SetUp(const DirectX::XMFLOAT3& u)
+{
+	up = u;
+}
+
+void TransformComponent::SetLook(const DirectX::XMFLOAT3& l)
+{
+	look = l;
+}
+
+void TransformComponent::SetBasisVector(const DirectX::XMFLOAT3& r, const DirectX::XMFLOAT3& u, const DirectX::XMFLOAT3& l)
+{
+	SetRight(r);
+	SetUp(u);
+	SetLook(l);
+}
+
 void TransformComponent::BasisNormalize()
 {
 	look = Math::Vector3Normalize(look);

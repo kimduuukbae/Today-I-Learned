@@ -45,3 +45,8 @@ uint32_t Object::GetLayer()
 {
 	return layer;
 }
+
+Scene* Object::GetScene()
+{
+	return curScene;
+}
