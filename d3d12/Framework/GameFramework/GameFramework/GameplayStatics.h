@@ -19,5 +19,6 @@ public:
 	static float GetDeltaTime();
 	static float GetTotalTime();
 	static class MeshBase* GetMesh(const std::string& name);
+	static class Scene* GetCurrentScene();
 };
 

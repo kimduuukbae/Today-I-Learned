@@ -5,12 +5,11 @@ class Object;
 class IComponent
 {
 public:
-	IComponent() = default;
-	virtual ~IComponent() = default;
+	IComponent();
+	virtual ~IComponent();
 
 	void SetOwner(Object* owner);
-	virtual void Update(const GameTimer& gt) = 0;
+	Object* GetOwner();
 protected:
 	Object* owner{ nullptr };
 };
-

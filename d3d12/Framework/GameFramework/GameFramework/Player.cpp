@@ -107,10 +107,7 @@ void Player::CtrlKey()
 {
 	TransformComponent* t{ GetTransform() };
 
-	bullets.push_back(std::make_unique<Bullet>());
-	Bullet* ptr{ bullets.back().get() };
-	ptr->Init();
-	ptr->SetPosition(t->GetPosition());
+	auto ptr{ GetScene()->SpawnObject<Bullet>(t->GetPosition()) };
 	ptr->GetTransform()->SetBasisVector(t->GetRight(), t->GetUp(), t->GetLook());
 }
 

@@ -13,7 +13,10 @@ public:
 
 	virtual void LoadFrameHierarchyFromFile();
 
+	void ProcessCollision(class CollisionComponent& other);
 protected:
 	using Super = Monster;
+
+	std::unique_ptr<class CollisionComponent> collision;
 };
 

@@ -48,3 +48,8 @@ MeshBase* GameplayStatics::GetMesh(const std::string& name)
 {
 	return MeshManager::GetInstance()->GetMesh(name);
 }
+
+Scene* GameplayStatics::GetCurrentScene()
+{
+	return SceneManager::GetInstance()->mainScene;
+}

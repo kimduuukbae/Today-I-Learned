@@ -24,6 +24,5 @@ protected:
 
 	Object* target{ nullptr };
 
-
 	int hp{ 100 };
 };

@@ -60,3 +60,18 @@ const std::string& Object::GetName()
 {
 	return name;
 }
+
+void Object::Activate()
+{
+	isActive = true;
+}
+
+void Object::DeActivate()
+{
+	isActive = false;
+}
+
+bool Object::IsActive() const
+{
+	return isActive;
+}

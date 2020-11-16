@@ -1,6 +1,6 @@
 #pragma once
 
-#include "IComponent.h"
+#include "UpdateComponent.h"
 #include "TransformComponent.h"
 
 class Scene;
@@ -18,10 +18,12 @@ public:
 	template <typename T>
 	std::unique_ptr<T> AddComponent()
 	{
-		return std::make_unique<T>();
+		auto p{ std::make_unique<T>() };
+		p->SetOwner(this);
+		return std::move(p);
 	}
 
-	template <typename T> requires std::is_base_of_v<IComponent, T>
+	template <typename T> requires std::is_base_of_v<UpdateComponent, T>
 	T* AddComponent()
 	{
 		auto p{ std::make_unique<T>() };
@@ -51,6 +53,10 @@ public:
 	void SetName(std::string&& name);
 	const std::string& GetName();
 
+	void Activate();
+	void DeActivate();
+	bool IsActive() const;
+
 protected:
 	using Super = Object;
 
@@ -58,12 +64,13 @@ private:
 	friend Scene;
 
 	std::unique_ptr<TransformComponent> transform;
-	std::vector<std::unique_ptr<IComponent>> components;
+	std::vector<std::unique_ptr<UpdateComponent>> components;
 
 	uint32_t layer{ 0 };
 
 	Scene* curScene;
 
 	std::string name;
+	bool isActive{ true };
 };
 

@@ -1,9 +1,11 @@
 #pragma once
 
+#include "IComponent.h"
+
 class Texture;
 class Material;
 
-class TextureComponent
+class TextureComponent : public IComponent
 {
 public:
 	TextureComponent();

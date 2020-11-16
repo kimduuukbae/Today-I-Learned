@@ -1,9 +1,9 @@
 #pragma once
 
 #include "CameraComponent.h"
-#include "IComponent.h"
+#include "UpdateComponent.h"
 
-class LagCameraComponent : public CameraComponent, public IComponent
+class LagCameraComponent : public CameraComponent, public UpdateComponent
 {
 public:
 	LagCameraComponent();

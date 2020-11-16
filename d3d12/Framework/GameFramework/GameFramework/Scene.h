@@ -3,6 +3,7 @@
 
 class CameraComponent;
 class SceneManager;
+class CollisionComponent;
 
 class Scene
 {
@@ -22,9 +23,6 @@ public:
 		uint32_t layer{ p->GetLayer() };
 		objects[layer].push_back(std::move(p));
 
-		
-
-		
 		return ptr;
 	}
 
@@ -43,6 +41,9 @@ public:
 
 	Object* FindObject(const std::string_view& name);
 
+	void AddCollision(CollisionComponent& collision);
+	void RemoveColliision(CollisionComponent& collision);
+
 protected:
 	virtual void Init() = 0;
 
@@ -53,5 +54,6 @@ private:
 	void Update(const GameTimer& gt);
 
 	std::map<uint32_t, std::vector<std::unique_ptr<Object>>> objects;
+	std::vector<std::reference_wrapper<CollisionComponent>> collisionObjects;
 };
 

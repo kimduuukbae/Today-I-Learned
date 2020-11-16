@@ -23,6 +23,7 @@ public:
 	
 private:
 	friend FrameworkApp;
+	friend class GameplayStatics;
 
 	void Init();
 	void Draw(ID3D12GraphicsCommandList* cmdList);

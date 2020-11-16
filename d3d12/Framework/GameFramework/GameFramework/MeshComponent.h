@@ -1,10 +1,12 @@
 #pragma once
 
+#include "IComponent.h"
+
 class MeshBase;
 class Material;
 struct Vertex;
 
-class MeshComponent
+class MeshComponent : public IComponent
 {
 public:
 	MeshComponent();

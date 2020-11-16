@@ -1,8 +1,8 @@
 #pragma once
 
-#include "IComponent.h"
+#include "UpdateComponent.h"
 
-class InputComponent : public IComponent
+class InputComponent : public UpdateComponent
 {
 public:
 
