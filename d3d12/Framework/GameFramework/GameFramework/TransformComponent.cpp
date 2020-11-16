@@ -162,8 +162,8 @@ void TransformComponent::SetBasisVector(const DirectX::XMFLOAT3& r, const Direct
 void TransformComponent::BasisNormalize()
 {
 	look = Math::Vector3Normalize(look);
-	up = Math::CrossProduct(look, right, true);
 	right = Math::CrossProduct(up, look, true);
+	up = Math::CrossProduct(look, right, true);
 
 	XMFLOAT4X4& worldMatrix{ matrix.worldMatrix };
 

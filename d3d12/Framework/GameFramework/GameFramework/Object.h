@@ -45,7 +45,11 @@ public:
 
 	void SetLayer(uint32_t layer);
 	uint32_t GetLayer();
+
 	Scene* GetScene();
+
+	void SetName(std::string&& name);
+	const std::string& GetName();
 
 protected:
 	using Super = Object;
@@ -59,5 +63,7 @@ private:
 	uint32_t layer{ 0 };
 
 	Scene* curScene;
+
+	std::string name;
 };
 

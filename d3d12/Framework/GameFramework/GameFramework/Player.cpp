@@ -15,8 +15,6 @@ void Player::Init()
 {
 	cameraComponent = AddComponent<LagCameraComponent>();
 
-	auto [x, y, z] = GetTransform()->GetPosition();
-
 	inputComponent = AddComponent<InputComponent>();
 	inputComponent->BindInput('W', true, [this]() { UpKey(); });
 	inputComponent->BindInput('S', true, [this]() { DownKey(); });
@@ -36,6 +34,8 @@ void Player::Init()
 	cameraComponent->SetPosition(frame->GetTransform()->GetPosition());
 	
 	GameplayStatics::SetMainCamera(cameraComponent);
+
+	SetName("Player");
 }
 
 void Player::Draw(ID3D12GraphicsCommandList* cmdList)
@@ -65,9 +65,7 @@ void Player::Update(const GameTimer& gt)
 
 void Player::LoadFrameHierarchyFromFile()
 {
-	using namespace DirectX;
-
-	FILE* pInFile = NULL;
+	FILE* pInFile{ nullptr };
 	::fopen_s(&pInFile, "Models\\Mi24.bin", "rb");
 	::rewind(pInFile);
 

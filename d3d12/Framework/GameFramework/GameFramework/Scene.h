@@ -14,13 +14,17 @@ public:
 	T* SpawnObject(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& rot = DirectX::XMFLOAT3{})
 	{
 		auto p{ std::make_unique<T>() };
-		p->Init();
-		p->GetTransform()->SetTransform(pos, rot);
 		p->curScene = this;
+		T* ptr{ p.get() };
+		ptr->Init();
+		ptr->GetTransform()->SetTransform(pos, rot);
 
 		uint32_t layer{ p->GetLayer() };
-		T* ptr{ p.get() };
 		objects[layer].push_back(std::move(p));
+
+		
+
+		
 		return ptr;
 	}
 
@@ -28,14 +32,16 @@ public:
 	T* SpawnObject()
 	{
 		auto p{ std::make_unique<T>() };
-		p->Init();
 		p->curScene = this;
+		T* ptr{ p.get() };
+		ptr->Init();
 
 		uint32_t layer{ p->GetLayer() };
-		T* ptr{ p.get() };
 		objects[layer].push_back(std::move(p));
 		return ptr;
 	}
+
+	Object* FindObject(const std::string_view& name);
 
 protected:
 	virtual void Init() = 0;
@@ -46,6 +52,6 @@ private:
 	virtual void Draw(ID3D12GraphicsCommandList* cmdList);
 	void Update(const GameTimer& gt);
 
-	std::map<int, std::vector<std::unique_ptr<Object>>> objects;
+	std::map<uint32_t, std::vector<std::unique_ptr<Object>>> objects;
 };
 

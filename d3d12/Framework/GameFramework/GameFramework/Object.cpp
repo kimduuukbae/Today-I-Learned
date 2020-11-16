@@ -50,3 +50,13 @@ Scene* Object::GetScene()
 {
 	return curScene;
 }
+
+void Object::SetName(std::string&& name)
+{
+	this->name = std::move(name);
+}
+
+const std::string& Object::GetName()
+{
+	return name;
+}

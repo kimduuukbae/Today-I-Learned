@@ -10,6 +10,9 @@ packages
 .UE4VS/
 UE4VS
 UE4VS/*
+x64/*
+./x64/
+.x64/*
 # Compiled Object files
 *.slo
 *.lo
@@ -137,3 +140,4 @@ Lunar-D3D12/D3D12/*
 *.filters
 *.user
 
+*.enc

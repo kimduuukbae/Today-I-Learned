@@ -122,6 +122,13 @@ namespace Math
 			DirectX::XMLoadFloat3(&lookAt), DirectX::XMLoadFloat3(&up)));
 		return result;
 	}
+
+	inline float Dot(const DirectX::XMFLOAT3& v1, const DirectX::XMFLOAT3& v2)
+	{
+		DirectX::XMFLOAT3 result;
+		DirectX::XMStoreFloat3(&result, DirectX::XMVector3Dot(DirectX::XMLoadFloat3(&v1), DirectX::XMLoadFloat3(&v2)));
+		return result.x;
+	}
 }
 
 namespace Buffers
