@@ -15,7 +15,7 @@ void SkySphere::Init()
 	mesh->SetMesh(GameplayStatics::GetMesh("Sphere"));
 
 	texture = AddComponent<TextureComponent>();
-	texture->SetTexture(GameplayStatics::GetTexture("Textures\\grasscube1024.dds"));
+	texture->SetTexture(GameplayStatics::GetTexture("Textures\\SkyBox_1.dds"));
 	SetLayer(3);
 }
 

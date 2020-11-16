@@ -50,7 +50,7 @@ void SuperCobra::Update(const GameTimer& gt)
 	else
 		GetTransform()->RotateY(-f);
 
-	if ( length > 100.0f)
+	if ( length > 20.0f)
 		GetTransform()->Forward(100.0f * gt.DeltaTime());	
 }
 

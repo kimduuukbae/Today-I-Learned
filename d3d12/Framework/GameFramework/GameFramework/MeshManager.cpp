@@ -30,7 +30,9 @@ void MeshManager::Init()
 
 MeshBase* MeshManager::GetMesh(const std::string& name)
 {
-	return meshs[name].get();
+	auto it = meshs.find(name);
+
+	return it != meshs.end() ? it->second.get() : nullptr;
 }
 
 MeshBase* MeshManager::GetMeshFromFile(const std::string& path)

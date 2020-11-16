@@ -22,6 +22,19 @@ void Scene::Update(const GameTimer& gt)
 	for (size_t i = 0; i < collisionObjects.size(); ++i)
 		for (size_t j = i + 1; j < collisionObjects.size(); ++j)
 			collisionObjects[i].get().DoOverlap(collisionObjects[j]);
+
+	for (auto& container : objects) {
+		auto& cont{ container.second };
+		for (auto it = cont.rbegin(); it != cont.rend();) {
+			auto& elem{ **it };
+			if (elem.deleteFlag_) {
+				const auto next{ cont.erase(it.base() - 1) };
+				it = std::make_reverse_iterator(next);
+			}
+			else
+				++it;
+		}
+	}
 }
 
 

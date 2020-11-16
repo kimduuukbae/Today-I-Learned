@@ -2,6 +2,7 @@
 #include "Gunship.h"
 #include "Scene.h"
 #include "CollisionComponent.h"
+#include "Particle.h"
 
 Gunship::Gunship()
 {
@@ -61,7 +62,7 @@ void Gunship::Update(const GameTimer& gt)
 		else
 			GetTransform()->RotateY(-f);
 
-		if (length > 100.0f)
+		if (length > 20.0f)
 			GetTransform()->Forward(100.0f * gt.DeltaTime());
 	}
 }
@@ -81,6 +82,8 @@ void Gunship::ProcessCollision(CollisionComponent& other)
 {
 	using namespace std;
 
-	if (other.GetOwner()->GetName() == "Bullet"sv)
-		DeActivate();
+	if (other.GetOwner()->GetName() == "Bullet"sv) {
+		GetScene()->SpawnObject<Particle>(GetTransform()->GetPosition());
+		Destroy();
+	}
 }

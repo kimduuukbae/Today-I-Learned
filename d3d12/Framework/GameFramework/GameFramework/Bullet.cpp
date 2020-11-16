@@ -45,5 +45,5 @@ void Bullet::Update(const GameTimer& gt)
 
 void Bullet::ProcessCollision(CollisionComponent& other)
 {
-	DeActivate();
+	Destroy();
 }

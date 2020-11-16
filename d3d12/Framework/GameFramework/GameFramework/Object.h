@@ -57,6 +57,7 @@ public:
 	void DeActivate();
 	bool IsActive() const;
 
+	void Destroy();
 protected:
 	using Super = Object;
 
@@ -72,5 +73,7 @@ private:
 
 	std::string name;
 	bool isActive{ true };
+
+	bool deleteFlag_{ false };
 };
 

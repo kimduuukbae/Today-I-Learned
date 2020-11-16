@@ -113,5 +113,5 @@ void Player::CtrlKey()
 
 void Player::MouseLeft(float f)
 {
-	GetTransform()->RotateY(f * 360.0f * GameplayStatics::GetDeltaTime());
+	GetTransform()->RotateY(f * 540.0f * GameplayStatics::GetDeltaTime());
 }

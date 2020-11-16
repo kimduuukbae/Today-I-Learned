@@ -75,3 +75,8 @@ bool Object::IsActive() const
 {
 	return isActive;
 }
+
+void Object::Destroy()
+{
+	deleteFlag_ = true;
+}

@@ -9,6 +9,7 @@
 #include "Bullet.h"
 #include "SuperCobra.h"
 #include "Gunship.h"
+#include "Particle.h"
 
 GameScene::GameScene()
 {
@@ -27,7 +28,8 @@ void GameScene::Init()
 	SpawnObject<Gunship>(DirectX::XMFLOAT3{ 700.0f, 700.0f, 900.0f });
 	
 	SpawnObject<Terrain>();
-	SpawnObject<Bullet>();
+	SpawnObject<Bullet>()->Destroy();
+	SpawnObject<Particle>()->Destroy();
 	SpawnObject<Water>(DirectX::XMFLOAT3{ 2032.0f, 280.0f, 2032.0f }, DirectX::XMFLOAT3{ 0.0f, 0.0f, 0.0f });
 	SpawnObject<Billboard>();
 	SpawnObject<SkySphere>();

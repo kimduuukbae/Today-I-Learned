@@ -223,14 +223,18 @@ void ResourceManager::CreatePSO()
 	ComPtr<ID3DBlob> blendPS{ CompileShader(L"Shaders\\Blend.hlsl", nullptr, "PS", "ps_5_1") };
 	
 	ComPtr<ID3DBlob> landscapeVS{ CompileShader(L"Shaders\\Landscape.hlsl", nullptr, "VS", "vs_5_1") };
-	
 	ComPtr<ID3DBlob> landscapePS{ CompileShader(L"Shaders\\Landscape.hlsl", nullptr, "PS", "ps_5_1") };
+	
 	ComPtr<ID3DBlob> skyboxVS{ CompileShader(L"Shaders\\Skybox.hlsl", nullptr, "VS", "vs_5_1") };
 	ComPtr<ID3DBlob> skyboxPS{ CompileShader(L"Shaders\\Skybox.hlsl", nullptr, "PS", "ps_5_1") };
 	
 	ComPtr<ID3DBlob> billBoardVS{ CompileShader(L"Shaders\\Billboard.hlsl", nullptr, "VS", "vs_5_1") };
 	ComPtr<ID3DBlob> billBoardGS{ CompileShader(L"Shaders\\Billboard.hlsl", nullptr, "GS", "gs_5_1") };
 	ComPtr<ID3DBlob> billBoardPS{ CompileShader(L"Shaders\\Billboard.hlsl", nullptr, "PS", "ps_5_1") };
+
+	ComPtr<ID3DBlob> particleVS{ CompileShader(L"Shaders\\Particle.hlsl", nullptr, "VS", "vs_5_1") };
+	ComPtr<ID3DBlob> particleGS{ CompileShader(L"Shaders\\Particle.hlsl", nullptr, "GS", "gs_5_1") };
+	ComPtr<ID3DBlob> particlePS{ CompileShader(L"Shaders\\Particle.hlsl", nullptr, "PS", "ps_5_1") };
 
 	std::vector<D3D12_INPUT_ELEMENT_DESC> inputLayout
 	{
@@ -327,6 +331,23 @@ void ResourceManager::CreatePSO()
 	opaqueDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
 	app->GetDevice()->CreateGraphicsPipelineState(&opaqueDesc, IID_PPV_ARGS(&psos["Billboard"]));
 
+	opaqueDesc.VS =
+	{
+		reinterpret_cast<BYTE*>(particleVS->GetBufferPointer()),
+		particleVS->GetBufferSize()
+	};
+	opaqueDesc.GS =
+	{
+		reinterpret_cast<BYTE*>(particleGS->GetBufferPointer()),
+		particleGS->GetBufferSize()
+	};
+	opaqueDesc.PS =
+	{
+		reinterpret_cast<BYTE*>(particlePS->GetBufferPointer()),
+		particlePS->GetBufferSize()
+	};
+	app->GetDevice()->CreateGraphicsPipelineState(&opaqueDesc, IID_PPV_ARGS(&psos["Particle"]));
+
 	opaqueDesc.GS = {};
 	opaqueDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 	opaqueDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
@@ -387,6 +408,11 @@ void ResourceManager::CreateShaderResourceView()
 	srv3DDesc.TextureCube.MostDetailedMip = 0;
 	srv3DDesc.TextureCube.ResourceMinLODClamp = 0.0f;
 
+	D3D12_SHADER_RESOURCE_VIEW_DESC srv2DArrayDesc{ srv2DDesc };
+	srv2DArrayDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+	srv2DArrayDesc.Texture2DArray.MostDetailedMip = 0;
+	srv2DArrayDesc.Texture2DArray.ResourceMinLODClamp = 0.0f;
+
 	D3D12_CPU_DESCRIPTOR_HANDLE handle{ srvHeap->GetCPUDescriptorHandleForHeapStart() };
 	D3D12_GPU_DESCRIPTOR_HANDLE gHandle{ srvHeap->GetGPUDescriptorHandleForHeapStart() };
 
@@ -402,6 +428,12 @@ void ResourceManager::CreateShaderResourceView()
 			srv3DDesc.TextureCube.MipLevels = it->GetResource()->GetDesc().MipLevels;
 			srv3DDesc.Format = it->GetResource()->GetDesc().Format;
 			device->CreateShaderResourceView(it->GetResource(), &srv3DDesc, handle);
+		}
+		else {
+			srv2DArrayDesc.Texture2DArray.MipLevels = it->GetResource()->GetDesc().MipLevels;
+			srv2DArrayDesc.Texture2DArray.ArraySize = size;
+			srv2DArrayDesc.Format = it->GetResource()->GetDesc().Format;
+			device->CreateShaderResourceView(it->GetResource(), &srv2DArrayDesc, handle);
 		}
 		it->SetHandle(gHandle);
 		handle.ptr += srvIncSize;
