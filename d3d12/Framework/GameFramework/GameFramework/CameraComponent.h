@@ -10,6 +10,7 @@ public:
 
 	DirectX::XMVECTOR GetPosition() const;
 	DirectX::XMFLOAT3 GetPosition3f() const;
+	DirectX::XMFLOAT3 GetPosition3fOffset() const;
 	void SetPosition(float x, float y, float z);
 	void SetPosition(const DirectX::XMFLOAT3& v);
 
@@ -52,6 +53,7 @@ public:
 
 	void SetOffset(float x, float y, float z);
 	void Move(const DirectX::XMFLOAT3& shift);
+	const DirectX::BoundingFrustum& GetFrustum() const;
 
 protected:
 	DirectX::XMFLOAT3 position { 0.0f, 0.0f, 0.0f };
@@ -71,5 +73,7 @@ protected:
 
 	float mNearWindowHeight{ 0.0f };
 	float mFarWindowHeight{ 0.0f };
+
+	DirectX::BoundingFrustum frustum;
 };
 

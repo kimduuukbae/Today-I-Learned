@@ -15,6 +15,7 @@ public:
 	void AddChild(std::unique_ptr<Frame>&& child);
 	void LoadMeshFromFile(FILE* pInFile);
 	void LoadMaterialsFromFile(FILE* pInFile);
+	void LoadTextureNotUsed(FILE* pInFile);
 	void UpdateMeshMatrix(DirectX::XMFLOAT4X4* mat);
 	Frame* FindFrame(const std::string_view& frameName);
 

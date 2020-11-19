@@ -4,6 +4,7 @@
 #include "ResourceManager.h"
 #include "MeshManager.h"
 #include "SceneManager.h"
+#include "CollisionComponent.h"
 
 float deltaTime;
 float totalTime;
@@ -11,6 +12,11 @@ float totalTime;
 void GameplayStatics::SetMainCamera(CameraComponent* camComp)
 {
 	ResourceManager::GetInstance()->SetMainCamera(camComp);
+}
+
+bool GameplayStatics::IsInCamera(CollisionComponent* collision)
+{
+	return collision->IsOverlap(ResourceManager::GetInstance()->mainCam->GetFrustum());
 }
 
 ID3D12PipelineState* GameplayStatics::GetPSO(const std::string& name)

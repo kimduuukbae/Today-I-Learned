@@ -18,5 +18,7 @@ private:
 	std::unique_ptr<class MeshComponent> mesh;
 	std::unique_ptr<class TextureComponent> texture;
 	std::unique_ptr<class CollisionComponent> collision;
+
+	DirectX::XMFLOAT3 originPos;
 };
 

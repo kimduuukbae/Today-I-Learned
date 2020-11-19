@@ -15,6 +15,7 @@ public:
 	void AddTexture(Texture* texture);
 	void SetMaterial(Material* material);
 	void BindingResource(ID3D12GraphicsCommandList* cmdList);
+	size_t GetTClusterSize();
 
 private:
 	Texture* texture{ nullptr };

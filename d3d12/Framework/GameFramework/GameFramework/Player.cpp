@@ -41,8 +41,6 @@ void Player::Init()
 void Player::Draw(ID3D12GraphicsCommandList* cmdList)
 {
 	frame->Draw(cmdList);
-	for (auto& elem : bullets)
-		elem->Draw(cmdList);
 }
 
 void Player::Update(const GameTimer& gt)
@@ -58,9 +56,6 @@ void Player::Update(const GameTimer& gt)
 		tailRotor->GetLocalTransform());
 
 	frame->UpdateMeshMatrix(&GetTransform()->GetTransformDirect());
-
-	for (auto& elem : bullets)
-		elem->Update(gt);
 }
 
 void Player::LoadFrameHierarchyFromFile()

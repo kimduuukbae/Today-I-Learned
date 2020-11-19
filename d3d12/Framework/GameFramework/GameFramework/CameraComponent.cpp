@@ -24,6 +24,11 @@ XMFLOAT3 CameraComponent::GetPosition3f()const
 	return position;
 }
 
+DirectX::XMFLOAT3 CameraComponent::GetPosition3fOffset() const
+{
+	return Math::Add(position, offset);
+}
+
 void CameraComponent::SetPosition(float x, float y, float z)
 {
 	UpdateMatrix();
@@ -199,6 +204,10 @@ void CameraComponent::UpdateMatrix()
 	viewMatrix(1, 3) = 0.0f;
 	viewMatrix(2, 3) = 0.0f;
 	viewMatrix(3, 3) = 1.0f;
+
+	frustum.CreateFromMatrix(frustum, DirectX::XMLoadFloat4x4(&projMatrix));
+	XMMATRIX inverse{ DirectX::XMMatrixInverse(nullptr, XMLoadFloat4x4(&viewMatrix)) };
+	frustum.Transform(frustum, inverse);
 }
 
 void CameraComponent::SetLens(float fovY, float aspect, float nZ, float fZ)
@@ -275,4 +284,9 @@ void CameraComponent::Move(const DirectX::XMFLOAT3& shift)
 	position = Math::Add(position, shift);
 
 	UpdateMatrix();
+}
+
+const DirectX::BoundingFrustum& CameraComponent::GetFrustum() const
+{
+	return frustum;
 }

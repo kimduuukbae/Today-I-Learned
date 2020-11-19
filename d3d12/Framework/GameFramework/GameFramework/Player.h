@@ -30,7 +30,5 @@ private:
 
 	Frame* mainRotor{ nullptr };
 	Frame* tailRotor{ nullptr };
-
-	std::vector<std::unique_ptr<class Bullet>> bullets;
 };
 

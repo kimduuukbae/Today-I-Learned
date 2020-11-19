@@ -13,6 +13,9 @@ public:
 	[[nodiscard]] 
 	bool IsOverlap(const CollisionComponent& other) const;
 
+	[[nodiscard]]
+	bool IsOverlap(const DirectX::BoundingFrustum& ft);
+
 	void SetRadius(float radius);
 
 	void AddCallbackFunction(std::function<void(CollisionComponent&)>&& fn);

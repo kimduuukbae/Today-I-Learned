@@ -17,8 +17,8 @@ public:
 		auto p{ std::make_unique<T>() };
 		p->curScene = this;
 		T* ptr{ p.get() };
-		ptr->Init();
 		ptr->GetTransform()->SetTransform(pos, rot);
+		ptr->Init();
 
 		uint32_t layer{ p->GetLayer() };
 		objects[layer].push_back(std::move(p));

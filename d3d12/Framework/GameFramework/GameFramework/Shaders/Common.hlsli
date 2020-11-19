@@ -1,3 +1,7 @@
+#ifndef NUM_DIR_LIGHTS
+    #define NUM_DIR_LIGHTS 1
+#endif
+
 #include "LightingUtil.hlsl"
 
 
@@ -14,6 +18,8 @@ cbuffer cbPass : register(b1)
     float4x4 gViewProj;
     float3 gEyePosW;
     float gTotalTime;
+    Light gLight[1];
+    float4 gAmbient;
 };
 
 /*cbuffer cbMaterial : register(b1)
@@ -22,28 +28,7 @@ cbuffer cbPass : register(b1)
     float3 gFresnelR0;
     float  gRoughness;
 	float4x4 gMatTransform;
-};
-
-cbuffer cbPass : register(b1)
-{
-    float4x4 gView;
-    float4x4 gInvView;
-    float4x4 gProj;
-    float4x4 gInvProj;
-    float4x4 gViewProj;
-    float4x4 gInvViewProj;
-    float3 gEyePosW;
-    float cbPerObjectPad1;
-    float2 gRenderTargetSize;
-    float2 gInvRenderTargetSize;
-    float gNearZ;
-    float gFarZ;
-    float gTotalTime;
-    float gDeltaTime;
-    float4 gAmbientLight;
-    Light gLights[MaxLights];
-};
-*/
+};*/
  
 SamplerState gSamplerPointWrap        : register(s0);
 SamplerState gSamplerPointClamp       : register(s1);
@@ -52,7 +37,7 @@ SamplerState gSamplerLinearClamp      : register(s3);
 SamplerState gSamplerAnisotropicWrap  : register(s4);
 SamplerState gSamplerAnisotropicClamp : register(s5);
 
-/*float3 NormalMapToWorldSpace(float3 normalMapSample, float3 normalW, float3 tangentW)
+float3 NormalMapToWorldSpace(float3 normalMapSample, float3 normalW, float3 tangentW)
 {
     // 샘플링된 Normal을 [-1, 1] 사이로 사상함
     float3 normalT = 2.0f * normalMapSample - 1.0f;
@@ -67,4 +52,22 @@ SamplerState gSamplerAnisotropicClamp : register(s5);
     float3 bumpedNormalW = mul(normalT, TBN);
 
     return bumpedNormalW;
-}*/
+}
+
+float3x3 CalcTBN(float3 normal, float3x3 world)
+{
+    // N
+    float3 worldNorm = normalize(mul(normal, world));
+    
+    // T
+    float3 tangent = cross(float3(0.0f, 1.0f, 0.0f), normal);
+    float3 worldTant = normalize(mul(tangent, world));
+
+    //B
+    float3 biNorm = cross(normal, tangent);
+    float3 worldBino = normalize(mul(biNorm, world));
+
+    float3x3 TBN = float3x3(worldTant, worldBino, worldNorm);
+
+    return TBN;
+}

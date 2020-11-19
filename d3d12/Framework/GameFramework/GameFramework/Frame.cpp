@@ -191,7 +191,11 @@ void Frame::LoadMeshFromFile(FILE* pInFile)
 			break;
 		}
 	}
-	mesh->SetMesh(MeshManager::GetInstance()->CreateFrameMesh(&v, &indexCluster, D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST,
+
+	if (auto m = MeshManager::GetInstance()->GetMesh(m_pstrMeshName); m)
+		mesh->SetMesh(m);
+	else
+		mesh->SetMesh(MeshManager::GetInstance()->CreateFrameMesh(&v, &indexCluster, D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST,
 		m_pstrMeshName));
 }
 
@@ -256,38 +260,63 @@ void Frame::LoadMaterialsFromFile(FILE* pInFile)
 		}
 		else if (!strcmp(pstrToken, "<SpecularMap>:"))
 		{
-			if (auto&& p = ResourceManager::GetInstance()->LoadTextureFromFile(pInFile); p)
-				texture->AddTexture(p);
+			LoadTextureNotUsed(pInFile);
+				//texture->AddTexture(p);
+				
 		}
 		else if (!strcmp(pstrToken, "<NormalMap>:"))
 		{
-			if (auto&& p = ResourceManager::GetInstance()->LoadTextureFromFile(pInFile); p)
-				texture->AddTexture(p);
+			if (texture->GetTClusterSize() == 0) {
+				if (auto&& p = ResourceManager::GetInstance()->LoadTextureFromFile(pInFile); p) {
+					texture->AddTexture(p);
+				}
+			}
+			else
+				LoadTextureNotUsed(pInFile);
 		}
 		else if (!strcmp(pstrToken, "<MetallicMap>:"))
 		{
-			if (auto&& p = ResourceManager::GetInstance()->LoadTextureFromFile(pInFile); p)
-				texture->AddTexture(p);
+			LoadTextureNotUsed(pInFile);
 		}
 		else if (!strcmp(pstrToken, "<EmissionMap>:"))
 		{
-			if (auto&& p = ResourceManager::GetInstance()->LoadTextureFromFile(pInFile); p)
-				texture->AddTexture(p);
+			LoadTextureNotUsed(pInFile);
 		}
 		else if (!strcmp(pstrToken, "<DetailAlbedoMap>:"))
 		{
-			if (auto&& p = ResourceManager::GetInstance()->LoadTextureFromFile(pInFile); p)
-				texture->AddTexture(p);
+			LoadTextureNotUsed(pInFile);
 		}
 		else if (!strcmp(pstrToken, "<DetailNormalMap>:"))
 		{
-			if (auto&& p = ResourceManager::GetInstance()->LoadTextureFromFile(pInFile); p)
-				texture->AddTexture(p);
+			LoadTextureNotUsed(pInFile);
 		}
 		else if (!strcmp(pstrToken, "</Materials>"))
 		{
 			break;
 		}
+	}
+}
+
+void Frame::LoadTextureNotUsed(FILE* pInFile)
+{
+	char pstrTextureName[64] = { '\0' };
+
+	BYTE nStrLength = 64;
+	UINT nReads = (UINT)::fread(&nStrLength, sizeof(BYTE), 1, pInFile);
+	nReads = (UINT)::fread(pstrTextureName, sizeof(char), nStrLength, pInFile);
+	pstrTextureName[nStrLength] = '\0';
+
+	bool bDuplicated = false;
+	bool bLoaded = false;
+	if (strcmp(pstrTextureName, "null"))
+	{
+		bLoaded = true;
+		char pstrFilePath[64] = { '\0' };
+		strcpy_s(pstrFilePath, 64, "Model/Textures/");
+
+		bDuplicated = (pstrTextureName[0] == '@');
+		strcpy_s(pstrFilePath + 15, 64 - 15, (bDuplicated) ? (pstrTextureName + 1) : pstrTextureName);
+		strcpy_s(pstrFilePath + 15 + ((bDuplicated) ? (nStrLength - 1) : nStrLength), 64 - 15 - ((bDuplicated) ? (nStrLength - 1) : nStrLength), ".dds");
 	}
 }
 

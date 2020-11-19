@@ -31,6 +31,14 @@ private:
 	void BindingResource(ID3D12GraphicsCommandList* cmdList);
 	void ReleaseUploadBuffer();
 
+	struct Light
+	{
+		DirectX::XMFLOAT3 strength{ 0.5f, 0.5f, 0.5f };
+		float pad1;
+		DirectX::XMFLOAT3 direction{ 0.0f, -1.0f, 0.0f };
+		float pad2;
+	};
+
 	struct PassInfomation
 	{
 		DirectX::XMFLOAT4X4 viewMatrix;
@@ -38,6 +46,8 @@ private:
 		DirectX::XMFLOAT4X4 viewProj;
 		DirectX::XMFLOAT3 eyePosition;
 		float totalTime;
+		Light light[1];
+		DirectX::XMFLOAT4 ambient;
 	};
 	std::unique_ptr<Buffers::UploadBuffer<PassInfomation>> passCB{ nullptr };
 

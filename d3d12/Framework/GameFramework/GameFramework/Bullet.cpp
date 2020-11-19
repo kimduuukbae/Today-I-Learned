@@ -26,24 +26,28 @@ void Bullet::Init()
 
 	SetLayer(0);
 	SetName("Bullet");
+
+	originPos = GetTransform()->GetPosition();
 }
 
 void Bullet::Draw(ID3D12GraphicsCommandList* cmdList)
 {
-	if (IsActive()) {
-		mesh->BindingResource(cmdList);
-		texture->BindingResource(cmdList);
-		cmdList->SetGraphicsRootConstantBufferView(0, GetTransform()->GetResourceAddress());
-		mesh->Draw(cmdList);
-	}
+
+	mesh->BindingResource(cmdList);
+	texture->BindingResource(cmdList);
+	cmdList->SetGraphicsRootConstantBufferView(0, GetTransform()->GetResourceAddress());
+	mesh->Draw(cmdList);
+
 }
 void Bullet::Update(const GameTimer& gt)
 {
-	if(IsActive())
-		GetTransform()->Forward(500.0f * gt.DeltaTime());
+	GetTransform()->Forward(500.0f * gt.DeltaTime());
+	if (Math::Length(Math::Subtract(GetTransform()->GetPosition(), originPos)) > 300.0f)
+		Destroy();
 }
 
 void Bullet::ProcessCollision(CollisionComponent& other)
 {
+	DeActivate();
 	Destroy();
 }

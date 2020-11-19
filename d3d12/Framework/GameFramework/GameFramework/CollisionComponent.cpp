@@ -35,6 +35,11 @@ bool CollisionComponent::IsOverlap(const CollisionComponent& other) const
         != DirectX::ContainmentType::DISJOINT;
 }
 
+bool CollisionComponent::IsOverlap(const DirectX::BoundingFrustum& ft)
+{
+    return ft.Intersects(GetBoundingSphere());
+}
+
 void CollisionComponent::SetRadius(float radius)
 {
     boundSphere.Radius = radius;

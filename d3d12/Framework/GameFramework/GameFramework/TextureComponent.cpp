@@ -26,6 +26,11 @@ void TextureComponent::BindingResource(ID3D12GraphicsCommandList* cmdList)
 	texture->BindingResource(cmdList);
 }
 
+size_t TextureComponent::GetTClusterSize()
+{
+	return tCluster.size();
+}
+
 void TextureComponent::AddTexture(Texture* texture)
 {
 	this->tCluster.push_back(texture);

@@ -110,6 +110,11 @@ void ResourceManager::BindingResource(ID3D12GraphicsCommandList* cmdList)
 	pass.eyePosition = mainCam->GetPosition3f();
 	XMStoreFloat4x4(&pass.viewProj, XMMatrixTranspose(XMMatrixMultiply(view, proj)));
 	pass.totalTime = GameplayStatics::GetTotalTime();
+	
+	pass.light[0].direction = mainCam->GetLook3f();
+	pass.light[0].strength = { 0.15f, 0.15f, 0.15f };
+	pass.ambient = { 0.01f, 0.01f, 0.01f, 1.0f };
+
 	passCB->CopyData(pass);
 	cmdList->SetGraphicsRootConstantBufferView(1, passCB->GetResource()->GetGPUVirtualAddress());
 }
