@@ -29,7 +29,7 @@ VertexOut VS(VertexIn vin)
 	// Skybox의 위치를 카메라의 위치로 
 	posW.xyz += gEyePosW;
 
-	vout.PosH = mul(posW, gViewProj).xyww;	// z/w == 1 되도록(즉, Skybox 구가 항상 먼 평면에 있도록) z = w로 설정
+	vout.PosH = mul(posW, gViewProj).xyww;	// z/w == 1 되도록(즉, Skybox 가 항상 먼 평면에 있도록) z = w로 설정
 
 	return vout;
 }

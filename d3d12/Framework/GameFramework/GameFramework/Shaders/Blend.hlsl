@@ -27,7 +27,6 @@ VertexOut VS(VertexIn vin)
     float color = gWaves.SampleLevel(gSamplerLinearWrap, vout.TexCoord, 0).a;
     vin.PosL.y += color * 100.0f;
     
-
     float4 posW = mul(float4(vin.PosL, 1.0f), gWorld);
     vout.PosW = posW.xyz;
 
@@ -39,8 +38,21 @@ VertexOut VS(VertexIn vin)
 float4 PS(VertexOut pin) : SV_Target
 {
     float4 color = gDiffuse.Sample(gSamplerLinearWrap, pin.TexCoord);
-    color.a *= 0.25f;
-    return color;
+    float4 normalMapSample = gWaves.Sample(gSamplerLinearWrap, pin.TexCoord);
+    float3 normalT = 2.0f * normalMapSample.rgb -1.0f;
+    normalT.xy = -normalT.xy;
+
+    float3 toEyeW = normalize(gEyePosW + float3(0.0f, 15.0f, -50.0f)- pin.PosW);
+
+    float4 pixelColor = ComputeLighting(gLight, color, pin.PosW,
+        normalT, toEyeW, 1.0f);
+
+    float4 ambient = color + gAmbient;
+    pixelColor += ambient;
+    //pixelColor = color;
+    pixelColor.a = 0.3f;
+    
+    return pixelColor;
 }
 
 

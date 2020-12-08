@@ -46,19 +46,19 @@ float3 SchlickFresnel(float3 R0, float3 normal, float3 lightVec)
 float3 BlinnPhong(float3 lightStrength, float3 lightVec, float3 normal, float3 toEye, float4 baseColor)
 {
     //Roughness 에서 얻은 Shininess 로부터 m을 유도
-   // const float m = 256.0f * 1.0f;
-    //float3 halfVec = normalize(toEye + lightVec);
+    const float m = 256.0f * 1.0f;
+    float3 halfVec = normalize(toEye + lightVec);
 
-//    float roughnessFactor = (m + 8.0f)*pow(max(dot(halfVec, normal), 0.0f), m) / 8.0f;
-  //  float3 fresnelFactor = SchlickFresnel(0.25f, halfVec, lightVec);
+    float roughnessFactor = (m + 8.0f)*pow(max(dot(halfVec, normal), 0.0f), m) / 8.0f;
+    float3 fresnelFactor = SchlickFresnel(0.25f, halfVec, lightVec);
 
-    //float3 specAlbedo = fresnelFactor*roughnessFactor;
+    float3 specAlbedo = fresnelFactor*roughnessFactor;
 
     // 반영 반사율 공식이 [0, 1] 구간 바깥의 값을 낼 수도 있지만
     // 우리는 LDR 렌더링을 구현하므로, 반사율을 1 미만으로 낮춘다.
-    //specAlbedo = specAlbedo / (specAlbedo + 1.0f);
+    specAlbedo = specAlbedo / (specAlbedo + 1.0f);
 
-    return baseColor.rgb /*+ specAlbedo)*/ * lightStrength;
+    return (baseColor.rgb + specAlbedo) * lightStrength;
 }
 // 모든 빛 벡터는 빛을 받을 점 -> 빛 이다.
 //---------------------------------------------------------------------------------------

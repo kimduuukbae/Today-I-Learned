@@ -36,8 +36,6 @@ VertexOut VS(VertexIn vin)
 void GS(point VertexOut gin[1], // 넘어오는 primitive는 point임
     inout TriangleStream<GeoOut> triStream) // TriangleStrip으로 변환시키는 Stream
 {
-    // 빌보드가 xz 평면에 붙어서 y방향으로 세워진 상태에서 카메라를
-    // 향하게 만드는 World 공간 기준 빌보드 좌표계 계산
     float3 up = float3(0.0f, 1.0f, 0.0f); // up vector는 고정
     float3 look = gEyePosW - gin[0].CenterW;
     look.y = 0.0f;  // y 축 정렬
@@ -48,9 +46,6 @@ void GS(point VertexOut gin[1], // 넘어오는 primitive는 point임
     float halfHeight = 0.5f * gin[0].SizeW.y;
 
     float4 v[4];
-    // float3 + float * float3 - float * float3 == float3
-    // 즉 x축 벡터로 halfWidth만큼, y축 벡터로 halfHeight만큼 이동하는 것.
-    // 0, 1, 2, 1, 3, 2 winding order 를 취함
     v[0] = float4(gin[0].CenterW + halfWidth * right - halfHeight * up, 1.0f);
     v[1] = float4(gin[0].CenterW + halfWidth * right + halfHeight * up, 1.0f);
     v[2] = float4(gin[0].CenterW - halfWidth * right - halfHeight * up, 1.0f);

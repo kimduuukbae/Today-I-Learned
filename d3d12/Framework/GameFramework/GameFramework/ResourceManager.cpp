@@ -111,8 +111,8 @@ void ResourceManager::BindingResource(ID3D12GraphicsCommandList* cmdList)
 	XMStoreFloat4x4(&pass.viewProj, XMMatrixTranspose(XMMatrixMultiply(view, proj)));
 	pass.totalTime = GameplayStatics::GetTotalTime();
 	
-	pass.light[0].direction = mainCam->GetLook3f();
-	pass.light[0].strength = { 0.15f, 0.15f, 0.15f };
+	pass.light[0].direction = { 0.0f, -1.0f, 0.0f };
+	pass.light[0].strength = { 1.0f , 1.0f, 1.0f};
 	pass.ambient = { 0.01f, 0.01f, 0.01f, 1.0f };
 
 	passCB->CopyData(pass);
@@ -315,9 +315,11 @@ void ResourceManager::CreatePSO()
 		reinterpret_cast<BYTE*>(landscapePS->GetBufferPointer()),
 		landscapePS->GetBufferSize()
 	};
-
+	opaqueDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
+	opaqueDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
 	app->GetDevice()->CreateGraphicsPipelineState(&opaqueDesc, IID_PPV_ARGS(&psos["Landscape"]));
-
+	opaqueDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
+	opaqueDesc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
 	opaqueDesc.VS =
 	{
 		reinterpret_cast<BYTE*>(billBoardVS->GetBufferPointer()),

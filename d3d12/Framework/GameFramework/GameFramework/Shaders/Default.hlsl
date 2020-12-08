@@ -39,22 +39,22 @@ float4 PS(VertexOut pin) : SV_Target
 {
     float4 color = gDiffuse.Sample(gSamplerLinearWrap, pin.TexCoord);
 
-   // float4 normalMapSample = gNormal.Sample(gSamplerLinearWrap, pin.TexCoord);
+    float4 normalMapSample = gNormal.Sample(gSamplerLinearWrap, pin.TexCoord);
 
-    //float3 normalT = 2.0f * (float3)normalMapSample - 1.0f;
+    float3 normalT = 2.0f * (float3)normalMapSample - 1.0f;
 
-    //float3 bumpedNormalW = mul(normalT, pin.TBN);
+    float3 bumpedNormalW = mul(normalT, pin.TBN);
 
-    // 한 점에서 카메라로 가는 방향벡터
-   // float3 toEyeW = normalize(gEyePosW - pin.PosW);
+   //  한 점에서 카메라로 가는 방향벡터
+    float3 toEyeW = normalize(gEyePosW - pin.PosW);
   
-   // float3 shadowFactor = 1.0f;
-    //float4 pixelColor = ComputeLighting(gLight, color, pin.PosW,
-        //bumpedNormalW, toEyeW, shadowFactor);
+    float3 shadowFactor = 1.0f;
+    float4 pixelColor = ComputeLighting(gLight, color, pin.PosW,
+        bumpedNormalW, toEyeW, shadowFactor);
 
-  //  float4 ambient = gAmbient + color;
-   // float4 litColor = ambient + pixelColor;
-   // litColor.a = color.a;
+    float4 ambient = gAmbient + color;
+    float4 litColor = ambient + pixelColor;
+    litColor.a = color.a;
 
     return color;
 }
