@@ -17,11 +17,19 @@ public:
 	~SphereMesh();
 };
 
-class Landscape : public Mesh
+class Landscape : public MeshBase
 {
 public:
 	Landscape(int width, int height, ID3D12Device* device, ID3D12GraphicsCommandList* commandList);
 	~Landscape();
+
+	virtual void BindingResource(ID3D12GraphicsCommandList* cmdList) override;
+	virtual void Draw(ID3D12GraphicsCommandList* cmdList) override;
+
+private:
+	void PartitionMap(std::vector<BYTE>& v, int width, int height, int xStart, int zStart);
+
+	std::vector<std::unique_ptr<CustomVertexMesh>> meshs;
 };
 
 

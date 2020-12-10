@@ -192,26 +192,56 @@ Landscape::Landscape(int width, int height, ID3D12Device* device, ID3D12Graphics
 {
 	std::ifstream is{"Textures\\HeightMap.raw", std::ios::binary};
 	std::vector<BYTE> heightMap(width * height);
-	is.read(reinterpret_cast<char*>(&heightMap[0]), heightMap.size() - 1);
+	is.read(reinterpret_cast<char*>(&heightMap[0]), width * height);
 
+	const long xBlocks{ (width - 1) / 8 };
+	const long zBlocks{ (height - 1) / 8 };
+
+	for (int z = 0, zStart = 0; z < zBlocks; ++z) {
+		for (int x = 0, xStart = 0; x < xBlocks; ++x) {
+			xStart = x * 8;
+			zStart = z * 8;
+			PartitionMap(heightMap, 9, 9, xStart, zStart);
+		}
+	}
+}
+
+Landscape::~Landscape()
+{
+}
+
+void Landscape::BindingResource(ID3D12GraphicsCommandList* cmdList)
+{
+}
+
+void Landscape::Draw(ID3D12GraphicsCommandList* cmdList)
+{
+	for (auto& elem : meshs) {
+		elem->BindingResource(cmdList);
+		elem->Draw(cmdList);
+	}
+}
+
+void Landscape::PartitionMap(std::vector<BYTE>& v, int width, int height, int xStart, int zStart)
+{
 	std::function<float(int, int)> GetHeight
 	{
-		[&heightMap, &width](int x, int z) {
-			return heightMap[static_cast<size_t>(x) + static_cast<size_t>((z * width))] * 4.0f;
+		[&v, &width](int x, int z) {
+			return v[static_cast<size_t>(x) + static_cast<size_t>((z * 257))] * 4.0f;
 		}
 	};
 
 	std::function<DirectX::XMFLOAT3(int, int)> GetNormal
 	{
-		[&heightMap, &width, &height](int x, int z) {
+		[&v, &width, &height](int x, int z) {
 			if ((x < 0.0f) || (z < 0.0f) || (x >= width) || (z >= height)) return DirectX::XMFLOAT3{0.0f, 1.0f, 0.0f};
 
 			size_t heightMapIndex{ static_cast<size_t>(x + (z * width)) };
 			size_t xHeightMapAdd{ static_cast<size_t>((x < (width - 1)) ? 1 : -1) };
 			size_t zHeightMapAdd{ static_cast<size_t>((z < (height - 1)) ? width : -width) };
-			float y1{ static_cast<float>(heightMap[heightMapIndex] * 4.0f) };
-			float y2{ static_cast<float>(heightMap[heightMapIndex + xHeightMapAdd] * 4.0f) };
-			float y3{ static_cast<float>(heightMap[heightMapIndex + zHeightMapAdd] * 4.0f) };
+			float y1{ static_cast<float>(v[heightMapIndex] * 4.0f) };
+			float y2{ static_cast<float>(v[heightMapIndex + xHeightMapAdd] * 4.0f) };
+			float y3{ static_cast<float>(v[heightMapIndex + zHeightMapAdd] * 4.0f) };
 
 			DirectX::XMFLOAT3 edge1 = {0.0f, y3 - y1, 16.0f};
 			DirectX::XMFLOAT3 edge2 = {16.0f, y2 - y1, 0.0f};
@@ -221,23 +251,25 @@ Landscape::Landscape(int width, int height, ID3D12Device* device, ID3D12Graphics
 		}
 	};
 
-	std::vector<Vertex> vertices;
-	vertices.reserve(static_cast<size_t>(width) * static_cast<size_t>(height));
+	float cHeight{}, minHeight{ +FLT_MAX }, maxHeight{ -FLT_MAX };
 
-	int zStart{}, xStart{};
-	float cHeight{}, minHeight{ FLT_MAX }, maxHeight{ -FLT_MAX };
-	for (int i = 0, z = zStart; z < (zStart + height); ++z)
+	std::vector<Vertex> vertices;
+	vertices.reserve(25);
+
+	for (int i = 0, z = (zStart + height - 1); z >= zStart; z -= 2)
 	{
-		for (int x = xStart; x < (xStart + width); ++x, ++i)
+		for (int x = xStart; x < (xStart + width); x += 2, i++)
 		{
 			cHeight = GetHeight(x, z);
 			DirectX::XMFLOAT3 norm{ GetNormal(x, z) };
 			Vertex v
-			{ 
+			{
 				static_cast<float>(x) * 16.0f, cHeight, static_cast<float>(z) * 16.0f,
-				norm.x, norm.y, norm.z,
+				static_cast<float>(x) / 8.0f,
+				static_cast<float>(z) / 8.0f, 
+				norm.z,
 				static_cast<float>(x) / static_cast<float>(width - 1),
-				static_cast<float>(height - 1 - z) / static_cast<float>(height - 1) 
+				static_cast<float>(height - 1 - z) / static_cast<float>(height - 1)
 			};
 			vertices.emplace_back(v);
 			if (cHeight < minHeight) minHeight = cHeight;
@@ -245,56 +277,9 @@ Landscape::Landscape(int width, int height, ID3D12Device* device, ID3D12Graphics
 		}
 	}
 
-	std::vector<uint32_t> indices;
-	indices.reserve(static_cast<size_t>(((width * 2) * (height - 1)) + ((height - 1) - 1)));
-
-	for (int j = 0, z = 0; z < height - 1; z++)
-	{
-		if ((z % 2) == 0)
-		{
-			for (int x = 0; x < width; x++)
-			{
-				if ((x == 0) && (z > 0))
-					indices.push_back(x + (z * width));
-
-				indices.push_back(x + (z * width));
-				indices.push_back((x + (z * width)) + width);
-			}
-		}
-		else
-		{
-			for (int x = width - 1; x >= 0; x--)
-			{
-				if (x == (width - 1))
-					indices.push_back(x + (z * width));
-
-				indices.push_back(x + (z * width));
-				indices.push_back((x + (z * width)) + width);
-			}
-		}
-	}
-
-	const UINT vbSize{ static_cast<UINT>(vertices.size()) * sizeof(Vertex) };
-	const UINT ibSize{ static_cast<UINT>(indices.size()) * sizeof(uint32_t) };
-
-	vBuffer = Buffers::CreateDefaultBuffer(device, commandList,
-		vertices.data(), vbSize, vUploadBuffer);
-	iBuffer = Buffers::CreateDefaultBuffer(device, commandList,
-		indices.data(), ibSize, iUploadBuffer);
-
-	vByteSize = vbSize;
-	vByteStride = sizeof(Vertex);
-
-	iFormat = DXGI_FORMAT_R32_UINT;
-	iByteSize = ibSize;
-
-	iCount = static_cast<UINT>(indices.size());
-
-	primTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
-}
-
-Landscape::~Landscape()
-{
+	meshs.emplace_back(std::make_unique<CustomVertexMesh>());
+	meshs.back()->CreateMesh(&vertices, D3D_PRIMITIVE_TOPOLOGY_25_CONTROL_POINT_PATCHLIST, "");
+	//meshs.back()->CreateMesh(&vertices, D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP, "");
 }
 
 GridXZ::GridXZ(uint32_t vertexX, uint32_t vertexY, float width, float depth, ID3D12Device* device, ID3D12GraphicsCommandList* commandList)

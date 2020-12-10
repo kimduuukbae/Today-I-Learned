@@ -228,6 +228,8 @@ void ResourceManager::CreatePSO()
 	ComPtr<ID3DBlob> blendPS{ CompileShader(L"Shaders\\Blend.hlsl", nullptr, "PS", "ps_5_1") };
 	
 	ComPtr<ID3DBlob> landscapeVS{ CompileShader(L"Shaders\\Landscape.hlsl", nullptr, "VS", "vs_5_1") };
+	ComPtr<ID3DBlob> landscapeHS{ CompileShader(L"Shaders\\Landscape.hlsl", nullptr, "HSControlPoint", "hs_5_1") };
+	ComPtr<ID3DBlob> landscapeDS{ CompileShader(L"Shaders\\Landscape.hlsl", nullptr, "DS", "ds_5_1") };
 	ComPtr<ID3DBlob> landscapePS{ CompileShader(L"Shaders\\Landscape.hlsl", nullptr, "PS", "ps_5_1") };
 	
 	ComPtr<ID3DBlob> skyboxVS{ CompileShader(L"Shaders\\Skybox.hlsl", nullptr, "VS", "vs_5_1") };
@@ -315,9 +317,24 @@ void ResourceManager::CreatePSO()
 		reinterpret_cast<BYTE*>(landscapePS->GetBufferPointer()),
 		landscapePS->GetBufferSize()
 	};
-	opaqueDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
-	opaqueDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+	opaqueDesc.HS =
+	{
+		reinterpret_cast<BYTE*>(landscapeHS->GetBufferPointer()),
+		landscapeHS->GetBufferSize()
+	};
+	opaqueDesc.DS =
+	{
+		reinterpret_cast<BYTE*>(landscapeDS->GetBufferPointer()),
+		landscapeDS->GetBufferSize()
+	};
+	opaqueDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
+	opaqueDesc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
+	opaqueDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
 	app->GetDevice()->CreateGraphicsPipelineState(&opaqueDesc, IID_PPV_ARGS(&psos["Landscape"]));
+
+	opaqueDesc.HS = {};
+	opaqueDesc.DS = {};
+	opaqueDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 	opaqueDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
 	opaqueDesc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
 	opaqueDesc.VS =
