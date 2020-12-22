@@ -17,6 +17,6 @@ public:
 protected:
 	using Super = Monster;
 
-	std::unique_ptr<class CollisionComponent> collision;
+	CollisionComponent* collision;
 };
 

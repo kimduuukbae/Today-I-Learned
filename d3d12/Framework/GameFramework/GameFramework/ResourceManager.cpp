@@ -4,6 +4,9 @@
 #include "CameraComponent.h"
 #include "Texture.h"
 #include "GameplayStatics.h"
+#include "LagCameraComponent.h"
+#include "Object.h"
+#include "BasicMesh.h"
 
 using namespace Microsoft::WRL;
 using namespace DirectX;
@@ -94,11 +97,11 @@ Texture* ResourceManager::LoadTextureFromFile(FILE* file)
 
 void ResourceManager::BindingResource(ID3D12GraphicsCommandList* cmdList)
 {
-	cmdList->SetGraphicsRootSignature(signature["Default"].Get());
+	cmdList->SetPipelineState(psos["Debug"].Get());
 
-	ID3D12DescriptorHeap* descriptorHeaps[] = { srvHeap.Get() };
-	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-	//같은 타입의 힙은 하나만 달 수 있음!
+	const auto&& barrier{ CD3DX12_RESOURCE_BARRIER::Transition(shadowMap->GetResource(),
+	D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_GENERIC_READ) };
+	cmdList->ResourceBarrier(1, &barrier);
 
 	PassInfomation pass;
 
@@ -109,14 +112,26 @@ void ResourceManager::BindingResource(ID3D12GraphicsCommandList* cmdList)
 	XMStoreFloat4x4(&pass.projMatrix, XMMatrixTranspose(proj));
 	pass.eyePosition = mainCam->GetPosition3f();
 	XMStoreFloat4x4(&pass.viewProj, XMMatrixTranspose(XMMatrixMultiply(view, proj)));
+	pass.shadowTransform = st;
 	pass.totalTime = GameplayStatics::GetTotalTime();
-	
-	pass.light[0].direction = { 0.0f, -1.0f, 0.0f };
-	pass.light[0].strength = { 1.0f , 1.0f, 1.0f};
-	pass.ambient = { 0.01f, 0.01f, 0.01f, 1.0f };
 
+	pass.light[0].direction = { -0.57735f, -0.57735f, 0.57735f };
+	pass.light[0].strength = { 2.0f, 2.0f, 2.0f };
+	/*pass.light[1].direction = { -0.57735f, -0.57735f, 0.57735f };
+	pass.light[1].strength = { 0.3f, 0.3f, 0.3f };
+	pass.light[2].direction = { 0.0f, -0.707f, -0.707f };
+	pass.light[2].strength = { 0.3f, 0.3f, 0.3f };*/
+	pass.ambient = { 0.2f, 0.2f , 0.2f, 0.2f};
+	
 	passCB->CopyData(pass);
 	cmdList->SetGraphicsRootConstantBufferView(1, passCB->GetResource()->GetGPUVirtualAddress());
+	cmdList->SetGraphicsRootDescriptorTable(3, shadowMap->srvHandle());
+
+	MeshBase* b{ GameplayStatics::GetMesh("Quad") };
+	b->BindingResource(cmdList);
+	b->Draw(cmdList);
+
+	cmdList->SetPipelineState(psos["Opaque"].Get());
 }
 
 void ResourceManager::ReleaseUploadBuffer()
@@ -125,10 +140,77 @@ void ResourceManager::ReleaseUploadBuffer()
 		it.second->ReleaseUploadBuffer();
 }
 
+void ResourceManager::PreProcessing(ID3D12GraphicsCommandList* cmdList)
+{
+	cmdList->RSSetViewports(1, &shadowMap->GetViewport());
+	cmdList->RSSetScissorRects(1, &shadowMap->GetRect());
+
+	const auto&& barrier{ CD3DX12_RESOURCE_BARRIER::Transition(shadowMap->GetResource(),
+		D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_DEPTH_WRITE) };
+	cmdList->ResourceBarrier(1, &barrier);
+	
+	D3D12_CPU_DESCRIPTOR_HANDLE depthHandle{ shadowMap->depthHandle() };
+
+	cmdList->ClearDepthStencilView(depthHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
+		1.0f, 0, 0, nullptr);
+
+	// 널 렌더 타겟을 사용하면 깊이 버퍼에만 작성함, GPU가 최적화 할 수 있음
+	// 널 렌더 타겟 == color write를 끄는것과 똑같음
+
+	cmdList->OMSetRenderTargets(0, nullptr, false, &depthHandle);
+
+	cmdList->SetPipelineState(psos["Shadow"].Get());
+	cmdList->SetGraphicsRootSignature(signature["Default"].Get());
+
+	ID3D12DescriptorHeap* descriptorHeaps[] = { srvHeap.Get() };
+	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+
+	PassInfomation pass;
+
+	auto [x, y, z] = static_cast<LagCameraComponent*>(mainCam)->GetOwner()->GetTransform()->GetPosition();
+
+	float radius{ 100.0f };
+	XMVECTOR lightDir = XMVectorSet(-0.57735f, -0.57735f, 0.57735f, 0.0f);
+	XMVECTOR lightPos = -2.0f * radius * lightDir;
+	XMFLOAT3 camPos{ x, y, z };
+	XMVECTOR targetPos = XMLoadFloat3(&camPos);
+	XMVECTOR lightUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+	XMMATRIX lightView = XMMatrixLookAtLH(lightPos, targetPos, lightUp);
+
+	XMStoreFloat3(&pass.eyePosition, lightPos);
+	
+	XMFLOAT3 sphereCenterLS;
+	XMStoreFloat3(&sphereCenterLS, XMVector3TransformCoord(targetPos, lightView));
+
+	float l = sphereCenterLS.x - radius;
+	float b = sphereCenterLS.y - radius;
+	float n = sphereCenterLS.z - radius;
+	float r = sphereCenterLS.x + radius;
+	float t = sphereCenterLS.y + radius;
+	float f = sphereCenterLS.z + radius;
+
+	XMMATRIX lightProj = XMMatrixOrthographicOffCenterLH(l, r, b, t, n, f);
+
+	// NDC 공간에서 Texture공간으로 이동하는 Matrix
+	XMMATRIX T(
+		0.5f, 0.0f, 0.0f, 0.0f,
+		0.0f, -0.5f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		0.5f, 0.5f, 0.0f, 1.0f);
+
+	XMMATRIX S = lightView * lightProj * T;
+	XMStoreFloat4x4(&pass.viewMatrix, XMMatrixTranspose(lightView));
+	XMStoreFloat4x4(&pass.projMatrix, XMMatrixTranspose(lightProj));
+	XMStoreFloat4x4(&pass.viewProj, XMMatrixTranspose(lightView * lightProj));
+	XMStoreFloat4x4(&st, XMMatrixTranspose(S));
+	shadowCB->CopyData(pass);
+	cmdList->SetGraphicsRootConstantBufferView(1, shadowCB->GetResource()->GetGPUVirtualAddress());
+}
+
 void ResourceManager::CreateRootSignature()
 {
 	ID3D12Device* device{ D3DApp::GetApp()->GetDevice() };
-	D3D12_ROOT_PARAMETER param[3]{};
+	D3D12_ROOT_PARAMETER param[4]{};
 
 	param[0].Descriptor.ShaderRegister = 0;
 	param[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;	// WORLD
@@ -138,20 +220,26 @@ void ResourceManager::CreateRootSignature()
 	param[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;	// Pass
 	param[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
-	/*param[2].Descriptor.ShaderRegister = 2;
-	param[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;	// Pass
-	*/
 	D3D12_DESCRIPTOR_RANGE srvRange{};
 	srvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	srvRange.NumDescriptors = 2;
+
+	D3D12_DESCRIPTOR_RANGE smRange{};
+	smRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	smRange.NumDescriptors = 1;
+	smRange.BaseShaderRegister = 2;
 
 	param[2].DescriptorTable.NumDescriptorRanges = 1;
 	param[2].DescriptorTable.pDescriptorRanges = &srvRange;
 	param[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
+	param[3].DescriptorTable.NumDescriptorRanges = 1;
+	param[3].DescriptorTable.pDescriptorRanges = &smRange;
+	param[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
 	D3D12_STATIC_SAMPLER_DESC ssDesc{};
 
-	std::array<CD3DX12_STATIC_SAMPLER_DESC, 6> ssamples{
+	const std::array<CD3DX12_STATIC_SAMPLER_DESC, 7> ssamples{
 		CD3DX12_STATIC_SAMPLER_DESC(
 			0, // shaderRegister
 			D3D12_FILTER_MIN_MAG_MIP_POINT, // filter
@@ -196,13 +284,24 @@ void ResourceManager::CreateRootSignature()
 			D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressV
 			D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressW
 			0.0f,                              // mipLODBias
-			8)                                // maxAnisotropy
+			8),                                // maxAnisotropy
+
+		CD3DX12_STATIC_SAMPLER_DESC(
+		6, // shaderRegister
+		D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT, // filter
+		D3D12_TEXTURE_ADDRESS_MODE_BORDER,  // addressU
+		D3D12_TEXTURE_ADDRESS_MODE_BORDER,  // addressV
+		D3D12_TEXTURE_ADDRESS_MODE_BORDER,  // addressW
+		0.0f,                               // mipLODBias
+		16,                                 // maxAnisotropy
+		D3D12_COMPARISON_FUNC_LESS_EQUAL,
+		D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK)
 	};
 
 	D3D12_ROOT_SIGNATURE_DESC desc{};
 	desc.pParameters = param;
-	desc.NumParameters = 3;
-	desc.NumStaticSamplers = 6;
+	desc.NumParameters = 4;
+	desc.NumStaticSamplers = ssamples.size();
 	desc.pStaticSamplers = ssamples.data();
 	desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
@@ -224,6 +323,9 @@ void ResourceManager::CreatePSO()
 	ComPtr<ID3DBlob> defaultVS{ CompileShader(L"Shaders\\Default.hlsl", nullptr, "VS", "vs_5_1") };
 	ComPtr<ID3DBlob> defaultPS{ CompileShader(L"Shaders\\Default.hlsl", nullptr, "PS", "ps_5_1") };
 
+	ComPtr<ID3DBlob> shadowVS{ CompileShader(L"Shaders\\Shadows.hlsl", nullptr, "VS", "vs_5_1") };
+	ComPtr<ID3DBlob> shadowPS{ CompileShader(L"Shaders\\Shadows.hlsl", nullptr, "PS", "ps_5_1") };
+
 	ComPtr<ID3DBlob> blendVS{ CompileShader(L"Shaders\\Blend.hlsl", nullptr, "VS", "vs_5_1") };
 	ComPtr<ID3DBlob> blendPS{ CompileShader(L"Shaders\\Blend.hlsl", nullptr, "PS", "ps_5_1") };
 	
@@ -242,6 +344,9 @@ void ResourceManager::CreatePSO()
 	ComPtr<ID3DBlob> particleVS{ CompileShader(L"Shaders\\Particle.hlsl", nullptr, "VS", "vs_5_1") };
 	ComPtr<ID3DBlob> particleGS{ CompileShader(L"Shaders\\Particle.hlsl", nullptr, "GS", "gs_5_1") };
 	ComPtr<ID3DBlob> particlePS{ CompileShader(L"Shaders\\Particle.hlsl", nullptr, "PS", "ps_5_1") };
+
+	ComPtr<ID3DBlob> debugVS{ CompileShader(L"Shaders\\DebugTexture.hlsl", nullptr, "VS", "vs_5_1") };
+	ComPtr<ID3DBlob> debugPS{ CompileShader(L"Shaders\\DebugTexture.hlsl", nullptr, "PS", "ps_5_1") };
 
 	std::vector<D3D12_INPUT_ELEMENT_DESC> inputLayout
 	{
@@ -275,6 +380,38 @@ void ResourceManager::CreatePSO()
 	opaqueDesc.DSVFormat = app->mDepthStencilFormat;
 
 	app->GetDevice()->CreateGraphicsPipelineState(&opaqueDesc, IID_PPV_ARGS(&psos["Opaque"]));
+
+	opaqueDesc.VS =
+	{
+		reinterpret_cast<BYTE*>(debugVS->GetBufferPointer()),
+		debugVS->GetBufferSize()
+	};
+	opaqueDesc.PS =
+	{
+		reinterpret_cast<BYTE*>(debugPS->GetBufferPointer()),
+		debugPS->GetBufferSize()
+	};
+
+	app->GetDevice()->CreateGraphicsPipelineState(&opaqueDesc, IID_PPV_ARGS(&psos["Debug"]));
+
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC smDesc{ opaqueDesc };
+	smDesc.RasterizerState.DepthBias = 100000;
+	smDesc.RasterizerState.DepthBiasClamp = 0.0f;
+	smDesc.RasterizerState.SlopeScaledDepthBias = 1.0f;
+	smDesc.VS =
+	{
+		reinterpret_cast<BYTE*>(shadowVS->GetBufferPointer()),
+		shadowVS->GetBufferSize()
+	};
+	smDesc.PS =
+	{
+		reinterpret_cast<BYTE*>(shadowPS->GetBufferPointer()),
+		shadowPS->GetBufferSize()
+	};
+	smDesc.RTVFormats[0] = DXGI_FORMAT_UNKNOWN;
+	smDesc.NumRenderTargets = 0;
+	
+	app->GetDevice()->CreateGraphicsPipelineState(&smDesc, IID_PPV_ARGS(&psos["Shadow"]));
 
 	opaqueDesc.VS =
 	{
@@ -327,8 +464,7 @@ void ResourceManager::CreatePSO()
 		reinterpret_cast<BYTE*>(landscapeDS->GetBufferPointer()),
 		landscapeDS->GetBufferSize()
 	};
-	opaqueDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
-	opaqueDesc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
+	opaqueDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
 	opaqueDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
 	app->GetDevice()->CreateGraphicsPipelineState(&opaqueDesc, IID_PPV_ARGS(&psos["Landscape"]));
 
@@ -336,7 +472,6 @@ void ResourceManager::CreatePSO()
 	opaqueDesc.DS = {};
 	opaqueDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 	opaqueDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
-	opaqueDesc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
 	opaqueDesc.VS =
 	{
 		reinterpret_cast<BYTE*>(billBoardVS->GetBufferPointer()),
@@ -394,15 +529,17 @@ void ResourceManager::CreateResources()
 {
 	D3DApp* app{ D3DApp::GetApp() };
 	passCB = std::make_unique<Buffers::UploadBuffer<PassInfomation>>(app->GetDevice(), 1, true);
+	shadowCB = std::make_unique<Buffers::UploadBuffer<PassInfomation>>(app->GetDevice(), 1, true);
 }
 
 void ResourceManager::CreateShaderResourceView()
 {
 	ID3D12Device* device{ D3DApp::GetApp()->GetDevice() };
+	shadowMap = std::make_unique<ShadowMap>(device, 1024, 768);
 	srvIncSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 	D3D12_DESCRIPTOR_HEAP_DESC desc{};
-	desc.NumDescriptors = static_cast<UINT>(textures.size());
+	desc.NumDescriptors = static_cast<UINT>(textures.size()) + 1;
 	desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	desc.NodeMask = 0;
@@ -463,4 +600,8 @@ void ResourceManager::CreateShaderResourceView()
 		handle.ptr += srvIncSize;
 		gHandle.ptr += srvIncSize;
 	}
+	srv2DDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+	srv2DDesc.Texture2D.MipLevels = 1;
+	device->CreateShaderResourceView(shadowMap->GetResource(), &srv2DDesc, handle);
+	shadowMap->SetSrvHandle(gHandle);
 }

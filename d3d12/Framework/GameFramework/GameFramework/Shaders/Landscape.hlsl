@@ -12,6 +12,9 @@ float CalculateTessFactor(float3 position)
 Texture2D gLandScapeTexture : register(t0);
 Texture2D gLandScapeDetailTexture : register(t1);
 
+Texture2D gShadowMap : register(t2);
+
+
 struct VertexIn
 {
 	float3 PosL    : POSITION;
@@ -25,6 +28,7 @@ struct VertexOut
 	float3 PosW    : POSITION1;
 	float2 TexCoord : TEXCOORD;
 	float2 DetailTexCoord : DTEXCOORD;
+	float3 NormalW : NORMAL;
 };
 
 VertexOut VS(VertexIn vin, uint vID : SV_VertexID)
@@ -34,7 +38,8 @@ VertexOut VS(VertexIn vin, uint vID : SV_VertexID)
 	vout.PosL = vin.PosL;
 	vout.PosW = mul(float4(vin.PosL, 1.0f), gWorld).xyz; // Transform to world space.
 	vout.TexCoord = vin.TexC;
-	vout.DetailTexCoord = vin.NormalL.xy;
+	vout.DetailTexCoord = vin.TexC;
+	vout.NormalW = mul(vin.NormalL, (float3x3)gWorld);
 
 	return vout;
 }
@@ -45,6 +50,7 @@ struct HullControlPointOut
 	float3 PosW    : POSITION1;
 	float2 TexCoord : TEXCOORD;
 	float2 DetailTexCoord : DTEXCOORD;
+	float3 NormalW : NORMAL;
 };
 
 // HSControlPoint
@@ -63,6 +69,7 @@ HullControlPointOut HSControlPoint(InputPatch<VertexOut, 25> input, uint id : SV
 	hout.PosW = input[id].PosW;
 	hout.TexCoord = input[id].TexCoord;
 	hout.DetailTexCoord = input[id].DetailTexCoord;
+	hout.NormalW = input[id].NormalW;
 
 	return hout;
 }
@@ -101,6 +108,7 @@ struct DomainOut
 	float4 PosW : POSITION;
 	float2 TexCoord : TEXCOORD;
 	float2 DetailTexCoord : DETAILTEXCOORD;
+	float3 NormalW : NORMAL;
 };
 
 void BernsteinCoeffcient5x5(float t, out float fBernstein[5])
@@ -136,11 +144,11 @@ DomainOut DS(HullConstantOut patchConstant, float2 uv : SV_DomainLocation, Outpu
 
 	dout.TexCoord = lerp(lerp(patch[0].TexCoord, patch[4].TexCoord, uv.x), lerp(patch[20].TexCoord, patch[24].TexCoord, uv.x), uv.y);
 	dout.DetailTexCoord = lerp(lerp(patch[0].DetailTexCoord, patch[4].DetailTexCoord, uv.x), lerp(patch[20].DetailTexCoord, patch[24].DetailTexCoord, uv.x), uv.y);
+	dout.NormalW = lerp(lerp(patch[0].NormalW, patch[4].NormalW, uv.x), lerp(patch[20].NormalW, patch[24].NormalW, uv.x), uv.y);
 
 	float3 PosW = CubicBezierSum5x5(patch, uB, vB);
 	dout.PosW = float4(PosW, 1.0f);
 	dout.PosH = mul(float4(PosW, 1.0f), gViewProj);
-
 	return dout;
 }
 
@@ -150,5 +158,19 @@ float4 PS(DomainOut pin) : SV_Target
 	float4 detail = gLandScapeDetailTexture.Sample(gSamplerLinearWrap, pin.DetailTexCoord);
 	
 	float4 color = saturate(lerp(base, detail, 0.75f));
-	return color;
+
+	pin.NormalW = normalize(pin.NormalW);
+	float3 toEyeW = normalize(gEyePosW - pin.PosW);
+
+	float3 shadowFactor = float3(1.0f, 1.0f, 1.0f);
+	//shadowFactor = CalcShadowFactor(pin.ShadowPosH);
+
+	float4 pixelColor = ComputeLighting(gLight, color, pin.PosW,
+		pin.NormalW, toEyeW, shadowFactor);
+
+	//float4 ambient = gAmbient * color;
+	//float4 litColor = ambient + pixelColor;
+	//litColor.a = color.a;
+
+	return pixelColor;
 }

@@ -3,6 +3,7 @@
 #include "Scene.h"
 #include "CollisionComponent.h"
 #include "Particle.h"
+#include "TextureComponent.h"
 #include "GameplayStatics.h"
 
 Gunship::Gunship()
@@ -29,7 +30,7 @@ void Gunship::Init()
 
 void Gunship::Draw(ID3D12GraphicsCommandList* cmdList)
 {
-	if (GameplayStatics::IsInCamera(collision.get()))
+	if (GameplayStatics::IsInCamera(collision))
 		frame->Draw(cmdList);
 }
 
@@ -73,6 +74,10 @@ void Gunship::LoadFrameHierarchyFromFile()
 	::rewind(pInFile);
 
 	frame = Frame::LoadFrameHierarchyFromFile(pInFile);
+
+	auto f{ frame->FindFrame("Gunship") };
+	f->GetComponent<TextureComponent>()->AddTexture(
+		GameplayStatics::GetTexture("Model\\Textures\\1K_GunshipTXTR(Normal).dds"));
 
 	::fclose(pInFile);
 }

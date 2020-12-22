@@ -3,6 +3,7 @@
 #include "LagCameraComponent.h"
 #include "GameplayStatics.h"
 #include "InputComponent.h"
+#include "TextureComponent.h"
 #include "Scene.h"
 #include "Bullet.h"
 
@@ -67,6 +68,10 @@ void Player::LoadFrameHierarchyFromFile()
 	frame = Frame::LoadFrameHierarchyFromFile(pInFile);
 
 	::fclose(pInFile);
+
+	auto f{ frame->FindFrame("Mi24") };
+	f->GetComponent<TextureComponent>()->AddTexture(
+		GameplayStatics::GetTexture("Model\\Textures\\1K_Mi24_TXTR(Normal).dds"));
 }
 
 void Player::LoadMaterials(FILE* pInFile)

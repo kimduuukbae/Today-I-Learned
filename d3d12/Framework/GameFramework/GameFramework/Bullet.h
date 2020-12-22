@@ -15,9 +15,9 @@ public:
 	void ProcessCollision(class CollisionComponent& other);
 
 private:
-	std::unique_ptr<class MeshComponent> mesh;
-	std::unique_ptr<class TextureComponent> texture;
-	std::unique_ptr<class CollisionComponent> collision;
+	class MeshComponent* mesh;
+	class TextureComponent* texture;
+	class CollisionComponent* collision;
 
 	DirectX::XMFLOAT3 originPos;
 };

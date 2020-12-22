@@ -16,14 +16,6 @@ public:
 	void SetRotation(const DirectX::XMFLOAT3& rot);
 	TransformComponent* GetTransform();
 	template <typename T>
-	std::unique_ptr<T> AddComponent()
-	{
-		auto p{ std::make_unique<T>() };
-		p->SetOwner(this);
-		return std::move(p);
-	}
-
-	template <typename T> requires std::is_base_of_v<UpdateComponent, T>
 	T* AddComponent()
 	{
 		auto p{ std::make_unique<T>() };
@@ -32,12 +24,28 @@ public:
 		return static_cast<T*>(components.back().get());
 	}
 
+	template <typename T> requires std::is_base_of_v<UpdateComponent, T>
+	T* AddComponent()
+	{
+		auto p{ std::make_unique<T>() };
+		p->SetOwner(this);
+		updateComponents.push_back(std::move(p));
+		return static_cast<T*>(updateComponents.back().get());
+	}
+
 	template <typename T>
 	T* GetComponent()
 	{
-		for (auto& it : components)
-			if (typeid(it) == T)
-				return it;
+		for (auto& it : components) {
+			if (auto p = dynamic_cast<T*>(it.get()); p)
+				return p;
+		}
+
+		for (auto& it : updateComponents) {
+			if (auto p = dynamic_cast<T*>(it.get()); p)
+				return p;
+		}
+
 		return nullptr;
 	}
 
@@ -64,8 +72,9 @@ protected:
 private:
 	friend Scene;
 
-	std::unique_ptr<TransformComponent> transform;
-	std::vector<std::unique_ptr<UpdateComponent>> components;
+	TransformComponent* transform;
+	std::vector<std::unique_ptr<UpdateComponent>> updateComponents;
+	std::vector<std::unique_ptr<IComponent>> components;
 
 	uint32_t layer{ 0 };
 

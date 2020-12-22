@@ -24,8 +24,8 @@ public:
 	DirectX::XMFLOAT4X4& GetLocalTransform();
 
 private:
-	std::unique_ptr<class MeshComponent> mesh;
-	std::unique_ptr<class TextureComponent> texture;
+	class MeshComponent* mesh;
+	class TextureComponent* texture;
 	std::vector<std::unique_ptr<Frame>> childs;
 
 	DirectX::XMFLOAT4X4 trsf;

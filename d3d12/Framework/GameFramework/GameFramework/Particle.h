@@ -12,8 +12,8 @@ public:
 	virtual void Draw(ID3D12GraphicsCommandList* cmdList) override;
 	virtual void Update(const GameTimer& gt) override;
 private:
-	std::unique_ptr<class MeshComponent> mesh;
-	std::unique_ptr<class TextureComponent> texture;
+	class MeshComponent* mesh;
+	class TextureComponent* texture;
 
 	float xSize;
 };

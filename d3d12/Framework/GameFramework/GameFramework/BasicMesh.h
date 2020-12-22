@@ -41,3 +41,12 @@ public:
 	ID3D12Device* device, ID3D12GraphicsCommandList* commandList);
 	~GridXZ();
 };
+
+// 동차좌표의 화면에서 무언가를 그리기 위한 Quad
+class Quad : public Mesh
+{
+public:
+	Quad(float x, float y, float width, float height, float depth,
+		ID3D12Device* device, ID3D12GraphicsCommandList* commandList);
+	~Quad();
+};

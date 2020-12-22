@@ -234,14 +234,14 @@ void Landscape::PartitionMap(std::vector<BYTE>& v, int width, int height, int xS
 	std::function<DirectX::XMFLOAT3(int, int)> GetNormal
 	{
 		[&v, &width, &height](int x, int z) {
-			if ((x < 0.0f) || (z < 0.0f) || (x >= width) || (z >= height)) return DirectX::XMFLOAT3{0.0f, 1.0f, 0.0f};
+			if ((x < 0.0f) || (z < 0.0f) || (x >= 257) || (z >= 257)) return DirectX::XMFLOAT3{0.0f, 1.0f, 0.0f};
 
-			size_t heightMapIndex{ static_cast<size_t>(x + (z * width)) };
-			size_t xHeightMapAdd{ static_cast<size_t>((x < (width - 1)) ? 1 : -1) };
-			size_t zHeightMapAdd{ static_cast<size_t>((z < (height - 1)) ? width : -width) };
-			float y1{ static_cast<float>(v[heightMapIndex] * 4.0f) };
-			float y2{ static_cast<float>(v[heightMapIndex + xHeightMapAdd] * 4.0f) };
-			float y3{ static_cast<float>(v[heightMapIndex + zHeightMapAdd] * 4.0f) };
+			size_t heightMapIndex{ static_cast<size_t>(x + (z * 257)) };
+			size_t xHeightMapAdd{ static_cast<size_t>((x < (257 - 1)) ? 1 : -1) };
+			size_t zHeightMapAdd{ static_cast<size_t>((z < (257 - 1)) ? 257 : -257) };
+			float y1{ static_cast<float>(v[heightMapIndex]) * 4.0f };
+			float y2{ static_cast<float>(v[heightMapIndex + xHeightMapAdd]) * 4.0f };
+			float y3{ static_cast<float>(v[heightMapIndex + zHeightMapAdd]) * 4.0f };
 
 			DirectX::XMFLOAT3 edge1 = {0.0f, y3 - y1, 16.0f};
 			DirectX::XMFLOAT3 edge2 = {16.0f, y2 - y1, 0.0f};
@@ -253,6 +253,7 @@ void Landscape::PartitionMap(std::vector<BYTE>& v, int width, int height, int xS
 
 	float cHeight{}, minHeight{ +FLT_MAX }, maxHeight{ -FLT_MAX };
 
+	
 	std::vector<Vertex> vertices;
 	vertices.reserve(25);
 
@@ -265,8 +266,8 @@ void Landscape::PartitionMap(std::vector<BYTE>& v, int width, int height, int xS
 			Vertex v
 			{
 				static_cast<float>(x) * 16.0f, cHeight, static_cast<float>(z) * 16.0f,
-				static_cast<float>(x) / 8.0f,
-				static_cast<float>(z) / 8.0f, 
+				norm.x,
+				norm.y, 
 				norm.z,
 				static_cast<float>(x) / static_cast<float>(width - 1),
 				static_cast<float>(height - 1 - z) / static_cast<float>(height - 1)
@@ -349,5 +350,61 @@ GridXZ::GridXZ(uint32_t vertexX, uint32_t vertexY, float width, float depth, ID3
 }
 
 GridXZ::~GridXZ()
+{
+}
+
+Quad::Quad(float x, float y, float width, float height, float depth, ID3D12Device* device, ID3D12GraphicsCommandList* commandList)
+{
+	std::array<Vertex, 4> vertices
+	{
+		Vertex
+		{
+			x, y - height, depth,
+			0.0f, 0.0f, -1.0f,
+			0.0f, 1.0f
+		},
+		Vertex
+		{
+			x, y, depth,
+			0.0f, 0.0f, -1.0f,
+			0.0f, 0.0f
+		},
+		Vertex
+		{
+			x + width, y, depth,
+			0.0f, 0.0f, -1.0f,
+			1.0f, 0.0f
+		},
+		Vertex
+		{
+			x + width, y - height, depth,
+			0.0f, 0.0f, -1.0f,
+			1.0f, 1.0f
+		}		
+	};
+
+	std::array<uint32_t, 6> indices
+	{
+		0, 1, 2, 0, 2, 3
+	};
+
+	const UINT vbSize{ static_cast<UINT>(vertices.size()) * sizeof(Vertex) };
+	const UINT ibSize{ static_cast<UINT>(indices.size()) * sizeof(uint32_t) };
+
+	vBuffer = Buffers::CreateDefaultBuffer(device, commandList,
+		vertices.data(), vbSize, vUploadBuffer);
+	iBuffer = Buffers::CreateDefaultBuffer(device, commandList,
+		indices.data(), ibSize, iUploadBuffer);
+
+	vByteSize = vbSize;
+	vByteStride = sizeof(Vertex);
+
+	iFormat = DXGI_FORMAT_R32_UINT;
+	iByteSize = ibSize;
+
+	iCount = static_cast<UINT>(indices.size());
+}
+
+Quad::~Quad()
 {
 }

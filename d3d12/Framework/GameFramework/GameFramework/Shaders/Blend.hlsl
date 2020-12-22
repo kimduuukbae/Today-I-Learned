@@ -15,6 +15,7 @@ struct VertexOut
 	float4 PosH    : SV_POSITION;
     float3 PosW    : POSITION;
     float2 TexCoord : TEXCOORD;
+    float3x3 TBN : TANBINNOR;
 };
 
 VertexOut VS(VertexIn vin)
@@ -31,7 +32,8 @@ VertexOut VS(VertexIn vin)
     vout.PosW = posW.xyz;
 
     vout.PosH = mul(posW, gViewProj);
-
+    //vout.TBN = CalcTBN(vin.NormalL, (float3x3)gWorld);
+    vout.TBN = float3x3(float3(1.0f, 0.0f, 0.0f), float3(0.0f, 0.0f, 1.0f), float3(0.0f, 1.0f, 0.0f));
     return vout;
 }
 
@@ -40,14 +42,15 @@ float4 PS(VertexOut pin) : SV_Target
     float4 color = gDiffuse.Sample(gSamplerLinearWrap, pin.TexCoord);
     float4 normalMapSample = gWaves.Sample(gSamplerLinearWrap, pin.TexCoord);
     float3 normalT = 2.0f * normalMapSample.rgb -1.0f;
-    normalT.xy = -normalT.xy;
+    //normalT.xy = -normalT.xy;
+    float3 bumpedNormalW = mul(normalT, pin.TBN);
 
-    float3 toEyeW = normalize(gEyePosW + float3(0.0f, 15.0f, -50.0f)- pin.PosW);
+    float3 toEyeW = normalize(gEyePosW - pin.PosW);
 
     float4 pixelColor = ComputeLighting(gLight, color, pin.PosW,
-        normalT, toEyeW, 1.0f);
+        bumpedNormalW, toEyeW, 1.0f);
 
-    float4 ambient = color + gAmbient;
+    float4 ambient = color * gAmbient;
     pixelColor += ambient;
     //pixelColor = color;
     pixelColor.a = 0.3f;

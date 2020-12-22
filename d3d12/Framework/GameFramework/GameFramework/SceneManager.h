@@ -27,6 +27,7 @@ private:
 
 	void Init();
 	void Draw(ID3D12GraphicsCommandList* cmdList);
+	void PreProcessing(ID3D12GraphicsCommandList* cmdList);
 	void Update(const GameTimer& gt);
 	void ClearUploadBuffer();
 

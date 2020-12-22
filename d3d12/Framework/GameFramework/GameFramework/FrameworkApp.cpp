@@ -96,7 +96,9 @@ void FrameworkApp::OnKeyboardUp(unsigned char key, unsigned char state)
 void FrameworkApp::Draw()
 {
 	FailedAssert(mDirectCmdListAlloc->Reset());
-	FailedAssert(mCommandList->Reset(mDirectCmdListAlloc.Get(), GameplayStatics::GetPSO("Opaque")));
+	FailedAssert(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
+
+	sceneManager->PreProcessing(mCommandList.Get());
 
 	mCommandList->RSSetViewports(1, &mScreenViewport);
 	mCommandList->RSSetScissorRects(1, &mScissorRect);

@@ -16,9 +16,10 @@ cbuffer cbPass : register(b1)
     float4x4 gView;
     float4x4 gProj;
     float4x4 gViewProj;
+    float4x4 gShadowTransform;
     float3 gEyePosW;
     float gTotalTime;
-    Light gLight[1];
+    Light gLight[3];
     float4 gAmbient;
 };
 
@@ -36,6 +37,7 @@ SamplerState gSamplerLinearWrap       : register(s2);
 SamplerState gSamplerLinearClamp      : register(s3);
 SamplerState gSamplerAnisotropicWrap  : register(s4);
 SamplerState gSamplerAnisotropicClamp : register(s5);
+SamplerComparisonState gSamplerShadow : register(s6);
 
 float3 NormalMapToWorldSpace(float3 normalMapSample, float3 normalW, float3 tangentW)
 {

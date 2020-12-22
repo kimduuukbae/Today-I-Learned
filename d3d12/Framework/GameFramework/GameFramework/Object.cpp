@@ -27,13 +27,14 @@ void Object::SetRotation(const DirectX::XMFLOAT3& rot)
 
 TransformComponent* Object::GetTransform()
 {
-	return transform.get();
+	return transform;
 }
 
 void Object::Update(const GameTimer& gt)
 {
-	for (auto& it : components)
+	for (auto& it : updateComponents) 
 		it->Update(gt);
+	
 }
 
 void Object::SetLayer(uint32_t layer)

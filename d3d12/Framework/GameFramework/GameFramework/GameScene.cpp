@@ -24,10 +24,10 @@ GameScene::~GameScene()
 void GameScene::Init()
 {
 	SpawnObject<Player>(DirectX::XMFLOAT3{ 1440.0f, 700.0f, 320.0f }, DirectX::XMFLOAT3{ });
-	//for (int i = 0; i < 100; ++i) {
-	//	SpawnObject<SuperCobra>(DirectX::XMFLOAT3{ 1000.0f + static_cast<float>(i * 50), 700.0f, 720.0f });
-	//	SpawnObject<Gunship>(DirectX::XMFLOAT3{ 700.0f, 700.0f , 900.0f + static_cast<float>(i * 50) });
-	//}
+	for (int i = 0; i < 10; ++i) {
+		SpawnObject<SuperCobra>(DirectX::XMFLOAT3{ 1000.0f + static_cast<float>(i * 50), 700.0f, 720.0f });
+		SpawnObject<Gunship>(DirectX::XMFLOAT3{ 700.0f, 700.0f , 900.0f + static_cast<float>(i * 50) });
+	}
 	
 	SpawnObject<Terrain>();
 	SpawnObject<Bullet>()->Destroy();

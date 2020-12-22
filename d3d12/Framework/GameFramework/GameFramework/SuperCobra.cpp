@@ -28,7 +28,7 @@ void SuperCobra::Init()
 
 void SuperCobra::Draw(ID3D12GraphicsCommandList* cmdList)
 {
-	if (GameplayStatics::IsInCamera(collision.get()))
+	if (GameplayStatics::IsInCamera(collision))
 		frame->Draw(cmdList);
 }
 

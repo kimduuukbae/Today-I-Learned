@@ -26,6 +26,8 @@ void MeshManager::Init()
 		device, cmdList);
 	meshs["GridXZ"] = std::make_unique<GridXZ>(100, 100, 4112.0f, 4112.0f,
 		device, cmdList);
+	meshs["Quad"] = std::make_unique<Quad>(0.25f, -0.25f, 0.75f, 0.75f, 0.0f,
+		device, cmdList);
 }
 
 MeshBase* MeshManager::GetMesh(const std::string& name)

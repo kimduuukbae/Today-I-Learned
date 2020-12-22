@@ -12,7 +12,7 @@ public:
 	virtual void Draw(ID3D12GraphicsCommandList* cmdList) override;
 
 private:
-	std::unique_ptr<class MeshComponent> mesh;
-	std::unique_ptr<class TextureComponent> texture;
+	class MeshComponent* mesh;
+	class TextureComponent* texture;
 };
 

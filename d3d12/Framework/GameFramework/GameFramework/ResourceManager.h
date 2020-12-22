@@ -3,6 +3,7 @@
 #include "Singleton.h"
 #include "Common.h"
 #include "Texture.h"
+#include "ShadowMap.h"
 
 class CameraComponent;
 
@@ -31,6 +32,8 @@ private:
 	void BindingResource(ID3D12GraphicsCommandList* cmdList);
 	void ReleaseUploadBuffer();
 
+	void PreProcessing(ID3D12GraphicsCommandList* cmdList);
+
 	struct Light
 	{
 		DirectX::XMFLOAT3 strength{ 0.5f, 0.5f, 0.5f };
@@ -44,12 +47,17 @@ private:
 		DirectX::XMFLOAT4X4 viewMatrix;
 		DirectX::XMFLOAT4X4 projMatrix;
 		DirectX::XMFLOAT4X4 viewProj;
+		DirectX::XMFLOAT4X4 shadowTransform;
 		DirectX::XMFLOAT3 eyePosition;
 		float totalTime;
-		Light light[1];
+		Light light[3];
 		DirectX::XMFLOAT4 ambient;
 	};
+
+	DirectX::XMFLOAT4X4 st;
+
 	std::unique_ptr<Buffers::UploadBuffer<PassInfomation>> passCB{ nullptr };
+	std::unique_ptr<Buffers::UploadBuffer<PassInfomation>> shadowCB{ nullptr };
 
 	std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12PipelineState>> psos;
 	std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12RootSignature>> signature;
@@ -58,6 +66,8 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> srvHeap{ nullptr };
 
 	class CameraComponent* mainCam{ nullptr };
+
+	std::unique_ptr<ShadowMap> shadowMap;
 
 	UINT srvIncSize{ 0 };
 };
