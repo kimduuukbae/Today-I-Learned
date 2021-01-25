@@ -19,5 +19,8 @@ public class PlayerController : MonoBehaviour
         float z = Input.GetAxisRaw(v);
 
         movement3D.SetDirection(new Vector3(x, 1, z));
+
+        if (Input.GetKeyDown(KeyCode.Space))
+            movement3D.Jump();
     }
 }
