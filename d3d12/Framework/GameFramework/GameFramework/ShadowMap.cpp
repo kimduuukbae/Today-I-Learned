@@ -48,7 +48,7 @@ ShadowMap::ShadowMap(ID3D12Device* device, uint32_t width, uint32_t height)
 	dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
 	dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 	dsvDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-	dsvDesc.Texture2D.MipSlice = 0;
+	//dsvDesc.Texture2D.MipSlice = 0;
 	device->CreateDepthStencilView(shadowMap.Get(), &dsvDesc, dsvHeap->GetCPUDescriptorHandleForHeapStart());
 }
 
