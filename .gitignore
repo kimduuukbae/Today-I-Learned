@@ -19,7 +19,6 @@ x64/*
 *.o
 *.obj
 *.ilk
-*.cs
 *.pdb
 *.log
 *.res
@@ -247,3 +246,9 @@ Assets/OtherAssets/
 Assets/Plugins/
 Assets/Standard Assets/
 Assets/AssetStoreTools/
+
+
+// Example
+d3d12/ShootingGame/ShootingGame/inc/
+GAmeSErverProgramming/TermProject/Simple2DClient/Simple2DClient/inc/
+
