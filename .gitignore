@@ -252,3 +252,6 @@ Assets/AssetStoreTools/
 d3d12/ShootingGame/ShootingGame/inc/
 GAmeSErverProgramming/TermProject/Simple2DClient/Simple2DClient/inc/
 
+// recipe
+
+*.recipe
