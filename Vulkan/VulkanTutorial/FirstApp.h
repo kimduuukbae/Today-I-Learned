@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Window.h"
+#include "Pipeline.h"
 
 namespace App {
 	class FirstApp {
@@ -9,6 +10,7 @@ namespace App {
 		static constexpr int height{ 600 };
 
 		Core::Window window{ width, height, "HELLO VULKAN!" };
+		Core::Pipeline pipeline{"shaders/simple_vs.vert.spv", "shaders/simple_fs.frag.spv"};
 
 	public:
 		FirstApp() = default;
