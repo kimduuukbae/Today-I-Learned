@@ -255,3 +255,10 @@ GAmeSErverProgramming/TermProject/Simple2DClient/Simple2DClient/inc/
 // recipe
 
 *.recipe
+
+// UE4
+[Bb]inaries/
+StarterContent/
+Intermediate/
+Saved/
+Debug/

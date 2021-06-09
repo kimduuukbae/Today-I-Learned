@@ -1,7 +1,8 @@
+#include "stdafx.h"
 #include "FirstApp.h"
 
 #include <iostream>
-#include <stdexcept>
+
 
 int main() {
 	App::FirstApp app{};

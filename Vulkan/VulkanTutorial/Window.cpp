@@ -1,4 +1,6 @@
+#include "stdafx.h"
 #include "Window.h"
+#include <stdexcept>
 
 namespace Core {
 
@@ -16,6 +18,11 @@ namespace Core {
 
 	bool Window::IsClosed(){
 		return glfwWindowShouldClose(window);
+	}
+
+	void Window::CreateWindowSurface(VkInstance instance, VkSurfaceKHR* surface){
+		if (glfwCreateWindowSurface(instance, window, nullptr, surface) != VK_SUCCESS)
+			throw std::runtime_error{ "Failed to create window surface" };
 	}
 
 	void Window::InitWindow() {
