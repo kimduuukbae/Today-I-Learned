@@ -3,8 +3,9 @@
 
 #include <iostream>
 
-
 int main() {
+
+    
 	App::FirstApp app{};
 
 	try {
@@ -14,4 +15,5 @@ int main() {
 		std::cerr << e.what() << std::endl;
 		return EXIT_FAILURE;
 	}
+    
 }

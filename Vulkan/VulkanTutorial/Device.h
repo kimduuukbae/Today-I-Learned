@@ -70,7 +70,7 @@ namespace Core {
 		Device& operator=(Device&&) = delete;
 
 		VkCommandPool GetCommandPool() const { return commandPool; }
-		VkDevice GetDeivce() const { return device; }
+		VkDevice GetDevice() const { return device; }
 		VkSurfaceKHR GetSurface() const { return surface; }
 		VkQueue GetGraphicsQueue() const { return graphicsQueue; }
 		VkQueue GetPresentQueue() const { return presentQueue; }
@@ -81,9 +81,9 @@ namespace Core {
 		VkFormat FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
 
 #ifdef __DEBUG__MODE__
-		static constexpr bool enableValidationLayers{ false };
-#else
 		static constexpr bool enableValidationLayers{ true };
+#else
+		static constexpr bool enableValidationLayers{ false };
 #endif
 	};
 }
