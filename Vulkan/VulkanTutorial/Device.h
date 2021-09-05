@@ -41,7 +41,6 @@ namespace Core {
 		void EndSingleTimeCommands(VkCommandBuffer commandBuffer);
 		void CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 		void CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layerCount);
-		void CreateImageWithInfo(const VkImageCreateInfo& imageInfo, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
 		VkPhysicalDeviceProperties properties;
 
 		void CreateInstance();
@@ -74,11 +73,12 @@ namespace Core {
 		VkSurfaceKHR GetSurface() const { return surface; }
 		VkQueue GetGraphicsQueue() const { return graphicsQueue; }
 		VkQueue GetPresentQueue() const { return presentQueue; }
-		SwapChainSupportDetails GetSwapChainSupport() { }
+		SwapChainSupportDetails GetSwapChainSupport() { return QuerySwapChainSupport(physicalDevice); }
 
 		uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 		QueueFamilyIndices FindPhysicalQueueFamilies() { return FindQueueFamilies(physicalDevice); }
 		VkFormat FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+		void CreateImageWithInfo(const VkImageCreateInfo& imageInfo, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
 
 #ifdef __DEBUG__MODE__
 		static constexpr bool enableValidationLayers{ true };

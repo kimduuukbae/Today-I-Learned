@@ -11,7 +11,6 @@ namespace Core {
 		*/
 
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo;
-		VkPipelineViewportStateCreateInfo viewportInfo;
 		VkPipelineRasterizationStateCreateInfo rasterizationInfo;
 		VkPipelineMultisampleStateCreateInfo multisampleInfo;
 		VkPipelineColorBlendAttachmentState colorBlendAttachment;

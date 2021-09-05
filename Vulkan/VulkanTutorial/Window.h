@@ -20,6 +20,8 @@ namespace Core {
 
 		bool IsClosed();
 		void CreateWindowSurface(VkInstance instance, VkSurfaceKHR* surface);
+
+		VkExtent2D GetExtent() const { return { static_cast<uint32_t>(width), static_cast<uint32_t>(height) }; }
 	};
 }
 

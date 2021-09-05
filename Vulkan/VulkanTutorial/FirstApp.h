@@ -3,6 +3,7 @@
 #include "Window.h"
 #include "Pipeline.h"
 #include "Device.h"
+#include "Swapchain.h"
 
 namespace App {
 	class FirstApp {
@@ -10,16 +11,24 @@ namespace App {
 		static constexpr int width{ 800 };
 		static constexpr int height{ 600 };
 
+		void CreatePipelineLayout();
+		void CreatePipeline();
+		void CreateCommandBuffers();
+		void DrawFrame();
+
 		Core::Window window{ width, height, "HELLO VULKAN!" };
 		Core::Device device{ window };
-		Core::Pipeline pipeline{device, 
-			"shaders/simple_vs.vert.spv",
-			"shaders/simple_fs.frag.spv",
-		Core::Pipeline::DefaultPipelineConfigInfo(width, height)};
+		Core::SwapChain swapChain{ device, window.GetExtent() };
+		std::unique_ptr<Core::Pipeline> pipeline;
+		VkPipelineLayout pipelineLayout;
+		std::vector<VkCommandBuffer> commandBuffers;
+
+		FirstApp(const FirstApp&) = delete;
+		FirstApp& operator=(const FirstApp&) = delete;
 
 	public:
-		FirstApp() = default;
-		~FirstApp() = default;
+		FirstApp();
+		~FirstApp();
 
 		void Run();
 	};
