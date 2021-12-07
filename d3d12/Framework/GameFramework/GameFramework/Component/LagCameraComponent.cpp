@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "LagCameraComponent.h"
-#include "Object.h"
+#include "Object/Object.h"
 
 using namespace DirectX;
 

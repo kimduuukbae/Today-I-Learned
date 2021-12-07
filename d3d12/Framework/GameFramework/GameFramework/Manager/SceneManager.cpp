@@ -1,6 +1,5 @@
 #include "stdafx.h"
 #include "SceneManager.h"
-#include "GameScene.h"
 #include "MeshManager.h"
 #include "ResourceManager.h"
 
@@ -19,8 +18,6 @@ void SceneManager::Init()
 	resourceManager = ResourceManager::GetInstance();
 
 	meshManager->Init();
-
-	Commit<GameScene>("GameScene"s);
 	
 	mainScene->Init();
 	resourceManager->Init();

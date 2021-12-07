@@ -1,18 +1,20 @@
 #pragma once
 
-#include "Object.h"
+#include "Object/Object.h"
 
-class Cube : public Object
+class Particle : public Object
 {
 public:
-	Cube();
-	virtual ~Cube() = default;
+	Particle();
+	virtual ~Particle();
 
 	virtual void Init() override;
 	virtual void Draw(ID3D12GraphicsCommandList* cmdList) override;
-
+	virtual void Update(const GameTimer& gt) override;
 private:
 	class MeshComponent* mesh;
 	class TextureComponent* texture;
+
+	float xSize;
 };
 

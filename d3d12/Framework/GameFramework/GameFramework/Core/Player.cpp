@@ -5,7 +5,6 @@
 #include "InputComponent.h"
 #include "TextureComponent.h"
 #include "Scene.h"
-#include "Bullet.h"
 
 Player::Player()
 {
@@ -105,10 +104,7 @@ void Player::DownKey()
 
 void Player::CtrlKey()
 {
-	TransformComponent* t{ GetTransform() };
 
-	auto ptr{ GetScene()->SpawnObject<Bullet>(t->GetPosition()) };
-	ptr->GetTransform()->SetBasisVector(t->GetRight(), t->GetUp(), t->GetLook());
 }
 
 void Player::MouseLeft(float f)

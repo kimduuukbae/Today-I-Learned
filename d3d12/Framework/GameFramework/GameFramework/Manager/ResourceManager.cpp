@@ -5,7 +5,7 @@
 #include "Texture.h"
 #include "GameplayStatics.h"
 #include "LagCameraComponent.h"
-#include "Object.h"
+#include "Object/Object.h"
 #include "BasicMesh.h"
 
 using namespace Microsoft::WRL;
