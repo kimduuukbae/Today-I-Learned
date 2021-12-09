@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Common.h"
-
 class CameraComponent
 {
 public:
@@ -68,8 +66,8 @@ protected:
 	float aspect{ 0.0f };
 	float fovY{ 0.0f };
 
-	DirectX::XMFLOAT4X4 viewMatrix{ Math::Identity4x4() };
-	DirectX::XMFLOAT4X4 projMatrix{ Math::Identity4x4() };
+	DirectX::XMFLOAT4X4 viewMatrix{ CommonMath::Identity4x4() };
+	DirectX::XMFLOAT4X4 projMatrix{ CommonMath::Identity4x4() };
 
 	float mNearWindowHeight{ 0.0f };
 	float mFarWindowHeight{ 0.0f };

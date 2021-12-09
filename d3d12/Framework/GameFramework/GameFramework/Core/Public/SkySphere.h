@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Object/Object.h"
+#include "Object.h"
 
 class SkySphere : public Object
 {

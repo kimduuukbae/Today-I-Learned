@@ -41,18 +41,9 @@
 //custom
 #include "GameTimer.h"
 #include "D3DApp.h"
-
-
-#ifndef FailedAssert
-#define FailedAssert(value)					\
-{											\
-	if (FAILED(value)) [[unlikely]] { assert(ERROR); }	\
-}										
-#endif
-
-#ifndef ReleaseCom
-#define ReleaseCom(x) { if(x){ x->Release(); x = 0; } }
-#endif
+#include "CommonMath.h"
+#include "Object.h"
+#include "Defines.h"
 
 /*namespace D3D {
 
