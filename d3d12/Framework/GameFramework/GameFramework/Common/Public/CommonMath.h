@@ -2,16 +2,6 @@
 
 class CommonMath {
 public:
-
-	static constexpr DirectX::XMFLOAT4X4 Identity4x4() {
-		return
-		{
-			1.0f, 0.0f, 0.0f, 0.0f,
-			0.0f, 1.0f, 0.0f, 0.0f,
-			0.0f, 0.0f, 1.0f, 0.0f,
-			0.0f, 0.0f, 0.0f, 1.0f
-		};
-	}
 	static DirectX::XMFLOAT3 CrossProduct(DirectX::XMFLOAT3& v1, DirectX::XMFLOAT3& v2, bool normalize = true);
 	static DirectX::XMFLOAT4X4 Multiply(const DirectX::XMFLOAT4X4& mat1, const DirectX::XMFLOAT4X4& mat2);
 	static DirectX::XMFLOAT4X4 Multiply(const DirectX::XMFLOAT4X4& mat1, const DirectX::XMMATRIX& mat2);

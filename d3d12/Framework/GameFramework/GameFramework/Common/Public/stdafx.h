@@ -11,6 +11,21 @@
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "dxguid.lib")
 
+//simd
+#if defined(_MSC_VER)
+#include <intrin.h>
+#elif defined(__GNUC__) && (defined(__x86_64__) || defined(__i386__))	// GCC , CLANG, ICC를 쓰고 x86-64, x86
+#include <x86intrin.h>
+#elif defined(__GNUC__) && defined(__ARM_NEON__)  // GCC , CLANG, ARMCC NEON을 포함한 ARM
+#include <arm_neon.h>
+#elif defined(__GNUC__) && defined(__IWMMXT__)  // GCC , CLANG, ARMCC WMMX를 포함한 ARM
+#include <mmintrin.h>
+#elif (defined(__GNUC__) || defined(__xlC__)) && (defined(__VEC__) || defined(__ALTIVEC__))  // GCC, CLANG, XLCC VMX 를 포함한 PowerPC
+#include <altivec.h>
+#elif defined(__GNUC__) && defined(__SPE__)  // GCC, CLAGN SPE를 포함한 PowerPC
+#include <spe.h>
+#endif
+
 //directX
 #include <d3d12.h>
 #include <dxgi1_4.h>
