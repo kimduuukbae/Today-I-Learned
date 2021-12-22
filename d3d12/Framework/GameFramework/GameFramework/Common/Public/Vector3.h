@@ -17,6 +17,8 @@ public:
 	static Vector3 CrossProduct(const Vector3& lhs, const Vector3& rhs);
 
 	Vector3 operator+(const Vector3& rhs);
+	Vector3 operator-(const Vector3& rhs);
+
 	class Basis {
 	public:
 		static Vector3 GetOriginVector();
@@ -25,6 +27,6 @@ public:
 		static Vector3 GetRightVector();
 	};
 
-	float _v3[3]{}
+	alignas(16) float _v3[3]{};
 };
 
