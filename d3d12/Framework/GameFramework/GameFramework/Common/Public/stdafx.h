@@ -59,6 +59,7 @@
 #include "CommonMath.h"
 #include "Object.h"
 #include "Defines.h"
+#include "Vector3.h"
 
 /*namespace D3D {
 

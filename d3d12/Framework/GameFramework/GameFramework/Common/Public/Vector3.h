@@ -12,12 +12,12 @@ public:
 
 	float GetSize() const;
 
+	Vector3 operator+(const Vector3& rhs);
+	Vector3 operator-(const Vector3& rhs);
+
 	// static functions
 	static float DotProduct(const Vector3& lhs, const Vector3& rhs);
 	static Vector3 CrossProduct(const Vector3& lhs, const Vector3& rhs);
-
-	Vector3 operator+(const Vector3& rhs);
-	Vector3 operator-(const Vector3& rhs);
 
 	class Basis {
 	public:
@@ -28,5 +28,6 @@ public:
 	};
 
 	alignas(16) float _v3[3]{};
+	bool _isNormalized{ false };
 };
 

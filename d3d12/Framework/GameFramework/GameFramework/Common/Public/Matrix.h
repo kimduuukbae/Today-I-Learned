@@ -2,8 +2,6 @@
 
 struct Matrix{
 public:
-
-	//TODO : SIMD Ãß°¡
 	Matrix() = default;
 	Matrix(const Matrix& other) = default;
 
@@ -13,15 +11,25 @@ public:
 		float _31, float _32, float _33, float _34,
 		float _41, float _42, float _43, float _44) {
 
-		_mat[0][0] = _11; _mat[0][1] = _12; _mat[0][2] = _13; _mat[0][3] = _14;
-		_mat[1][0] = _21; _mat[1][1] = _22; _mat[1][2] = _23; _mat[1][3] = _24;
-		_mat[2][0] = _31; _mat[2][1] = _32; _mat[2][2] = _33; _mat[2][3] = _34;
-		_mat[3][0] = _41; _mat[3][1] = _42; _mat[3][2] = _43; _mat[3][3] = _44;
+		__m128 firstLine{ _mm_load_ss(&_11) };
+		__m128 secondLine{ _mm_load_ss(&_21) };
+		__m128 thirdLine{ _mm_load_ss(&_31) };
+		__m128 fourthLine{ _mm_load_ss(&_41) };
+
+		_mm_store_ss(_mat[0], firstLine);
+		_mm_store_ss(_mat[1], secondLine);
+		_mm_store_ss(_mat[2], thirdLine);
+		_mm_store_ss(_mat[3], fourthLine);
 	}
 
 	Matrix operator*(const Matrix& other);
 	Matrix& operator=(const Matrix& other) = default;
 
+#if defined(_MSC_VER)
+	__forceinline
+#else
+	inline
+#endif
 	static Matrix GetIdentityMatrix() {
 		return 	{
 			1.0f, 0.0f, 0.0f, 0.0f,
@@ -31,7 +39,7 @@ public:
 		};
 	}
 
-	float _mat[4][4]{};
+	alignas(16) float _mat[4][4]{};
 };
 
 

@@ -36,9 +36,9 @@ Vector3 Vector3::operator-(const Vector3& rhs){
 
 #elif defined(NO_INTRINSICS)
 	Vector3 _result{
-		_v3[0] + rhs._v3[0],
-		_v3[1] + rhs._v3[1],
-		_v3[2] + rhs._v3[2]
+		_v3[0] - rhs._v3[0],
+		_v3[1] - rhs._v3[1],
+		_v3[2] - rhs._v3[2]
 	};
 
 	return _result;
@@ -48,7 +48,13 @@ Vector3 Vector3::operator-(const Vector3& rhs){
 
 void Vector3::Normalize(){
 #if defined(SSE_INTRINSICS)
-	__m128 _vLength{}
+	__m128 _m128V3{ _mm_load_ss(_v3) };
+	__m128 _m128VLengthSqrt{ _mm_sqrt_ss(_mm_mul_ss(_m128V3, _m128V3)) };
+	_m128V3 = _mm_div_ss(_m128V3, _m128VLengthSqrt);
+
+	_v3[0] = _m128V3.m128_f32[0];
+	_v3[1] = _m128V3.m128_f32[1];
+	_v3[2] = _m128V3.m128_f32[2];
 
 #elif defined(NO_INTRINSICS)
 	Vector3 _result{
@@ -56,31 +62,29 @@ void Vector3::Normalize(){
 		_v3[1] + rhs._v3[1],
 		_v3[2] + rhs._v3[2]
 	};
-
-	return _result;
 #endif
+
+	_isNormalized = true;
 }
 
 bool Vector3::IsNormalized() const{
-	return false;
+	return _isNormalized;
 }
 
-float Vector3::GetSize() const
-{
-	return 0.0f;
+float Vector3::GetSize() const{
+	__m128 _m128V3{ _mm_load_ss(_v3) };
+	__m128 _m128VLengthSqrt{ _mm_sqrt_ss(_mm_mul_ss(_m128V3, _m128V3)) };
+
+	return _m128VLengthSqrt.m128_f32[0];
 }
 
-float Vector3::DotProduct(const Vector3& lhs, const Vector3& rhs)
-{
-	return 0.0f;
+float Vector3::DotProduct(const Vector3& lhs, const Vector3& rhs){
+	return { lhs._v3[0] * rhs._v3[0] + lhs._v3[1] * rhs._v3[1] + lhs._v3[2] * rhs._v3[2] };
 }
 
-Vector3 Vector3::CrossProduct(const Vector3& lhs, const Vector3& rhs)
-{
+Vector3 Vector3::CrossProduct(const Vector3& lhs, const Vector3& rhs){
 	return Vector3();
 }
-
-
 
 Vector3 Vector3::Basis::GetOriginVector()
 {
