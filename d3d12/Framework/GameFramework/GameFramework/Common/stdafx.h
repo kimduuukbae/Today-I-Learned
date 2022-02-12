@@ -56,10 +56,25 @@
 //custom
 #include "GameTimer.h"
 #include "D3DApp.h"
+<<<<<<< HEAD:d3d12/Framework/GameFramework/GameFramework/Common/Public/stdafx.h
 #include "CommonMath.h"
 #include "Object.h"
 #include "Defines.h"
 #include "Vector3.h"
+=======
+
+
+#ifndef FailedAssert
+#define FailedAssert(value)					\
+{											\
+	if (FAILED(value)) [[unlikely]] { assert(ERROR); }	\
+}										
+#endif
+
+#ifndef ReleaseCom
+#define ReleaseCom(x) { if(x){ x->Release(); x = 0; } }
+#endif
+>>>>>>> parent of 389f579 (폴더 변경):d3d12/Framework/GameFramework/GameFramework/Common/stdafx.h
 
 /*namespace D3D {
 

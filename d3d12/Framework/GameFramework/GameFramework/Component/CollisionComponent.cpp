@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "CollisionComponent.h"
-#include "Object.h"
+#include "Object/Object.h"
 #include "GameplayStatics.h"
 #include "Scene.h"
 

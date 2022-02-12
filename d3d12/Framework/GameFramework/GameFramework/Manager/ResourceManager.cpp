@@ -5,7 +5,7 @@
 #include "Texture.h"
 #include "GameplayStatics.h"
 #include "LagCameraComponent.h"
-#include "Object.h"
+#include "Object/Object.h"
 #include "BasicMesh.h"
 
 using namespace Microsoft::WRL;
@@ -117,6 +117,10 @@ void ResourceManager::BindingResource(ID3D12GraphicsCommandList* cmdList)
 
 	pass.light[0].direction = { -0.57735f, -0.57735f, 0.57735f };
 	pass.light[0].strength = { 2.0f, 2.0f, 2.0f };
+	/*pass.light[1].direction = { -0.57735f, -0.57735f, 0.57735f };
+	pass.light[1].strength = { 0.3f, 0.3f, 0.3f };
+	pass.light[2].direction = { 0.0f, -0.707f, -0.707f };
+	pass.light[2].strength = { 0.3f, 0.3f, 0.3f };*/
 	pass.ambient = { 0.2f, 0.2f , 0.2f, 0.2f};
 	
 	passCB->CopyData(pass);
@@ -297,7 +301,7 @@ void ResourceManager::CreateRootSignature()
 	D3D12_ROOT_SIGNATURE_DESC desc{};
 	desc.pParameters = param;
 	desc.NumParameters = 4;
-	desc.NumStaticSamplers = static_cast<uint32_t>(ssamples.size());
+	desc.NumStaticSamplers = ssamples.size();
 	desc.pStaticSamplers = ssamples.data();
 	desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
@@ -307,6 +311,9 @@ void ResourceManager::CreateRootSignature()
 		, IID_PPV_ARGS(&signature["Default"]));
 
 	serializeBlob->Release();
+
+	//D3D12SerializeRootSignature(&desc, D3D_ROOT_SIGNATURE_VERSION_1, serializeBlob.GetAddressOf(),
+		//device->CreateRootSignature(0, ))
 }
 
 void ResourceManager::CreatePSO()

@@ -26,7 +26,7 @@ XMFLOAT3 CameraComponent::GetPosition3f()const
 
 DirectX::XMFLOAT3 CameraComponent::GetPosition3fOffset() const
 {
-	return CommonMath::Add(position, offset);
+	return Math::Add(position, offset);
 }
 
 void CameraComponent::SetPosition(float x, float y, float z)
@@ -281,7 +281,7 @@ void CameraComponent::SetOffset(float x, float y, float z)
 
 void CameraComponent::Move(const DirectX::XMFLOAT3& shift)
 {
-	position = CommonMath::Add(position, shift);
+	position = Math::Add(position, shift);
 
 	UpdateMatrix();
 }

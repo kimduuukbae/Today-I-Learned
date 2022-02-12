@@ -245,7 +245,7 @@ void Landscape::PartitionMap(std::vector<BYTE>& v, int width, int height, int xS
 
 			DirectX::XMFLOAT3 edge1 = {0.0f, y3 - y1, 16.0f};
 			DirectX::XMFLOAT3 edge2 = {16.0f, y2 - y1, 0.0f};
-			DirectX::XMFLOAT3 norm = CommonMath::CrossProduct(edge1, edge2, true);
+			DirectX::XMFLOAT3 norm = Math::CrossProduct(edge1, edge2, true);
 
 			return norm;
 		}

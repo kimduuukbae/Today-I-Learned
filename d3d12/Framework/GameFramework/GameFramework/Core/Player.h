@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Frame.h"
+
 class Player : public Object
 {
 public:
@@ -9,6 +11,9 @@ public:
 	virtual void Init() override;
 	virtual void Draw(ID3D12GraphicsCommandList* cmdList) override;
 	virtual void Update(const GameTimer& gt) override;
+	
+	void LoadFrameHierarchyFromFile();
+	void LoadMaterials(FILE* pInFile);
 
 	void LeftKey();
 	void RightKey();
@@ -20,5 +25,10 @@ public:
 private:
 	class LagCameraComponent* cameraComponent;
 	class InputComponent* inputComponent;
+
+	std::unique_ptr<Frame> frame;
+
+	Frame* mainRotor{ nullptr };
+	Frame* tailRotor{ nullptr };
 };
 

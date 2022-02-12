@@ -24,8 +24,14 @@ void Player::Init()
 
 	inputComponent->BindAxis(MK_LBUTTON, [this](float f) { MouseLeft(f); });
 
+	LoadFrameHierarchyFromFile();
+
+	mainRotor = frame->FindFrame("Top_Rotor");
+	tailRotor = frame->FindFrame("Tail_Rotor");
+
 	cameraComponent->SetOffset(0.0f, 15.0f, -50.0f);
 	cameraComponent->Pitch(15.0f);
+	cameraComponent->SetPosition(frame->GetTransform()->GetPosition());
 	
 	GameplayStatics::SetMainCamera(cameraComponent);
 
@@ -34,36 +40,66 @@ void Player::Init()
 
 void Player::Draw(ID3D12GraphicsCommandList* cmdList)
 {
-
+	frame->Draw(cmdList);
 }
 
 void Player::Update(const GameTimer& gt)
 {
 	Super::Update(gt);
+
+	mainRotor->GetLocalTransform() = Math::Multiply(
+		DirectX::XMMatrixRotationY(DirectX::XMConvertToRadians(360.0f * 2.0f) * gt.DeltaTime()),
+		mainRotor->GetLocalTransform());
+
+	tailRotor->GetLocalTransform() = Math::Multiply(
+		DirectX::XMMatrixRotationX(DirectX::XMConvertToRadians(360.0f * 4.0f) * gt.DeltaTime()),
+		tailRotor->GetLocalTransform());
+
+	frame->UpdateMeshMatrix(&GetTransform()->GetTransformDirect());
+}
+
+void Player::LoadFrameHierarchyFromFile()
+{
+	FILE* pInFile{ nullptr };
+	::fopen_s(&pInFile, "Models\\Mi24.bin", "rb");
+	::rewind(pInFile);
+
+	frame = Frame::LoadFrameHierarchyFromFile(pInFile);
+
+	::fclose(pInFile);
+
+	auto f{ frame->FindFrame("Mi24") };
+	f->GetComponent<TextureComponent>()->AddTexture(
+		GameplayStatics::GetTexture("Model\\Textures\\1K_Mi24_TXTR(Normal).dds"));
+}
+
+void Player::LoadMaterials(FILE* pInFile)
+{
+
 }
 
 void Player::LeftKey()
 {
 	GetTransform()->Right(-360.0f * GameplayStatics::GetDeltaTime());
-	cameraComponent->Move(CommonMath::MultiplyScalar(GetTransform()->GetRight(), -360.0f * GameplayStatics::GetDeltaTime()));
+	cameraComponent->Move(Math::MultiplyScalar(GetTransform()->GetRight(), -360.0f * GameplayStatics::GetDeltaTime()));
 }
 
 void Player::RightKey()
 {
 	GetTransform()->Right(360.0f * GameplayStatics::GetDeltaTime());
-	cameraComponent->Move(CommonMath::MultiplyScalar(GetTransform()->GetRight(), 360.0f * GameplayStatics::GetDeltaTime()));
+	cameraComponent->Move(Math::MultiplyScalar(GetTransform()->GetRight(), 360.0f * GameplayStatics::GetDeltaTime()));
 }
 
 void Player::UpKey()
 {
 	GetTransform()->Forward(360.0f * GameplayStatics::GetDeltaTime());
-	cameraComponent->Move(CommonMath::MultiplyScalar(GetTransform()->GetLook(), 360.0f * GameplayStatics::GetDeltaTime()));
+	cameraComponent->Move(Math::MultiplyScalar(GetTransform()->GetLook(), 360.0f * GameplayStatics::GetDeltaTime()));
 }
 
 void Player::DownKey()
 {
 	GetTransform()->Forward(-360.0f * GameplayStatics::GetDeltaTime());
-	cameraComponent->Move(CommonMath::MultiplyScalar(GetTransform()->GetLook(), -360.0f * GameplayStatics::GetDeltaTime()));
+	cameraComponent->Move(Math::MultiplyScalar(GetTransform()->GetLook(), -360.0f * GameplayStatics::GetDeltaTime()));
 }
 
 void Player::CtrlKey()

@@ -7,7 +7,7 @@ TransformComponent::TransformComponent()
 {
 	cBuffer = std::make_unique<Buffers::UploadBuffer<MatrixInformation>>(D3DApp::GetApp()->GetDevice(), 1, true);
 	matrix.textureTransform = { 1.0f, 1.0f };
-	matrix.worldMatrix = CommonMath::Identity4x4();
+	matrix.worldMatrix = Math::Identity4x4();
 	
 	cBuffer->CopyData(matrix);
 }
@@ -72,8 +72,8 @@ D3D12_GPU_VIRTUAL_ADDRESS TransformComponent::GetResourceAddress()
 void TransformComponent::RotateX(float angle)
 {
 	XMMATRIX rot{ DirectX::XMMatrixRotationAxis(XMLoadFloat3(&right), DirectX::XMConvertToRadians(angle)) };
-	look = CommonMath::TransformNormal(look, rot);
-	up = CommonMath::TransformNormal(up, rot);
+	look = Math::TransformNormal(look, rot);
+	up = Math::TransformNormal(up, rot);
 
 	BasisNormalize();
 }
@@ -81,8 +81,8 @@ void TransformComponent::RotateX(float angle)
 void TransformComponent::RotateY(float angle)
 {
 	XMMATRIX rot{ DirectX::XMMatrixRotationAxis(XMLoadFloat3(&up), DirectX::XMConvertToRadians(angle)) };
-	look = CommonMath::TransformNormal(look, rot);
-	right = CommonMath::TransformNormal(right, rot);
+	look = Math::TransformNormal(look, rot);
+	right = Math::TransformNormal(right, rot);
 
 	BasisNormalize();
 }
@@ -90,15 +90,15 @@ void TransformComponent::RotateY(float angle)
 void TransformComponent::RotateZ(float angle)
 {
 	XMMATRIX rot{ DirectX::XMMatrixRotationAxis(XMLoadFloat3(&look), DirectX::XMConvertToRadians(angle)) };
-	right = CommonMath::TransformNormal(right, rot);
-	up = CommonMath::TransformNormal(up, rot);
+	right = Math::TransformNormal(right, rot);
+	up = Math::TransformNormal(up, rot);
 
 	BasisNormalize();
 }
 
 void TransformComponent::Forward(float distance)
 {
-	position = CommonMath::Add(position, CommonMath::MultiplyScalar(look, distance));
+	position = Math::Add(position, Math::MultiplyScalar(look, distance));
 	matrix.worldMatrix._41 = position.x;
 	matrix.worldMatrix._42 = position.y;
 	matrix.worldMatrix._43 = position.z;
@@ -107,7 +107,7 @@ void TransformComponent::Forward(float distance)
 
 void TransformComponent::Right(float distance)
 {
-	position = CommonMath::Add(position, CommonMath::MultiplyScalar(right, distance));
+	position = Math::Add(position, Math::MultiplyScalar(right, distance));
 	matrix.worldMatrix._41 = position.x;
 	matrix.worldMatrix._42 = position.y;
 	matrix.worldMatrix._43 = position.z;
@@ -161,9 +161,9 @@ void TransformComponent::SetBasisVector(const DirectX::XMFLOAT3& r, const Direct
 
 void TransformComponent::BasisNormalize()
 {
-	look = CommonMath::Vector3Normalize(look);
-	right = CommonMath::CrossProduct(up, look, true);
-	up = CommonMath::CrossProduct(look, right, true);
+	look = Math::Vector3Normalize(look);
+	right = Math::CrossProduct(up, look, true);
+	up = Math::CrossProduct(look, right, true);
 
 	XMFLOAT4X4& worldMatrix{ matrix.worldMatrix };
 
